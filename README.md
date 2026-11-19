@@ -1,6 +1,6 @@
 # SenceLab
 
-SenceLab là ứng dụng Android để xem kho map, nhập ZIP hoặc assetbundle và quản lý bản sao lưu của tệp map đã chọn.
+SenceLab là ứng dụng Android để xem kho map, nhập AssetBundle và khôi phục tệp map gốc.
 
 ## Tải ứng dụng
 
@@ -12,11 +12,11 @@ SenceLab là ứng dụng Android để xem kho map, nhập ZIP hoặc assetbund
 ## Sử dụng
 
 1. Mở **Kho Map** để xem danh mục online và lịch sử đã dùng.
-2. Chọn map, nhập pass rồi bấm **Áp dụng**. Bạn cũng có thể dùng **Nhập ZIP** để nhập tệp map có sẵn.
-3. Nếu Android yêu cầu, chọn đúng tệp đích. SenceLab tải bản thay thế, sao lưu tệp gốc và xác minh nội dung sau khi ghi.
-4. Dùng **Gỡ map đang dùng** trên **Trang chủ** để khôi phục bản gốc.
+2. Chọn map, nhập pass rồi bấm **Áp dụng**. Bạn cũng có thể dùng **Nhập AssetBundle** để chọn tệp `.assetbundle`, đặt tên rồi bấm **Áp dụng** trong danh sách.
+3. Cấp quyền ghi trong **Quyền → Cấp quyền bộ nhớ**. SenceLab thay và xác minh tệp map khi có quyền ghi. Bạn có thể áp dụng map khác ngay khi đang dùng một map.
+4. Dùng **Gỡ mod** trên **Trang chủ** để tải và ghi lại tệp gốc từ Mapgoc.
 
-Bản 1.5.1 tự làm mới Kho Map từ Drive khi mở ứng dụng, hiển thị ảnh xem trước và tải bundle khi áp dụng. Việc ghi tệp phụ thuộc vào quyền mà Android cấp cho tệp đã chọn. Các mục Shizuku và ADB WiFi ở dạng mô phỏng.
+Kho Map tự làm mới từ Drive khi mở ứng dụng, hiển thị ảnh xem trước và tải bundle khi áp dụng. Bạn có thể chọn Shizuku, ADB WiFi hoặc SAF. Khả năng ghi vào tệp map phụ thuộc vào thiết bị và quyền đã cấp.
 
 Trong **Cài đặt chung → Kiểm tra**, ứng dụng tra cứu bản phát hành mới nhất trên GitHub Releases.
 
