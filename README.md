@@ -22,7 +22,6 @@ Trong **Cài đặt chung → Kiểm tra**, ứng dụng tra cứu bản phát h
 
 ## Liên kết
 
-- [Kho Map trên Google Drive](https://drive.google.com/drive/folders/1l3U7OM5WNNLpFB91oXkKHY-glQrO1Znp)
 - [Telegram](https://t.me/ttt_cth)
 - [TikTok](https://tiktok.com/@autochess.lqm)
 - [YouTube](https://www.youtube.com/@battuthanhthan)
