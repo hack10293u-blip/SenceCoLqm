@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101017">
+  <title>SenceLab 1.6.3</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101017; --panel: #1b1a26; --border: #342e45;
+      --text: #f6f1ff; --muted: #b8afc8; --lilac: #d9bfff; --mint: #9fe5ca; --pink: #ffb8cf;
+      font: 15px/1.5 system-ui, "Segoe UI", sans-serif;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f8eef4; --panel: #fffdfd; --border: #e8deec;
+      --text: #21172b; --muted: #62546c; --lilac: #6846a0; --mint: #237458; --pink: #a7426a;
+    }
+    * { box-sizing: border-box; }
+    :root { --amber: #f6d078; }
+    :root[data-theme="light"] { --amber: #916111; }
+    body { margin: 0; min-width: 290px; color: var(--text); background: radial-gradient(ellipse at 50% 18%, #272039, #0a090f 72%); }
+    [data-theme="light"] body { background: radial-gradient(ellipse at 50% 18%, #eee4fa, #e5ddf0 72%); }
+    button, input { font: inherit; }
+    button { color: inherit; cursor: pointer; }
+    button:focus-visible, input:focus-visible { outline: 2px solid var(--lilac); outline-offset: 3px; }
+    button:disabled { opacity: .45; cursor: default; }
+    .app { max-width: 480px; min-height: 100dvh; display: flex; flex-direction: column; margin: 0 auto; background: var(--bg); box-shadow: 0 0 90px #07060c; }
+    header { display: flex; align-items: center; gap: 11px; padding: max(14px, env(safe-area-inset-top)) 20px 12px; min-height: 69px; }
+    .brand { font-size: 23px; font-weight: 850; letter-spacing: -.75px; flex: 1; }
+    .brand small { display: block; font-size: 12px; font-weight: 650; color: var(--muted); letter-spacing: 0; }
+    .greeting { margin: 0 0 16px; }
+    .greeting p { margin: 0 0 5px; color: var(--muted); font-weight: 650; }
+    .greeting h1 { font-size: clamp(25px, 7vw, 34px); }
+    main { flex: 1; padding: 10px 20px 24px; }
+    h1 { margin: 0; font-size: clamp(27px, 8vw, 38px); line-height: 1.13; letter-spacing: -.045em; font-weight: 820; }
+    .intro { margin: 8px 0 17px; color: var(--muted); }
+    h2 { margin: 19px 0 9px; font-size: 17px; font-weight: 750; }
+    .cover { position: relative; display: flex; align-items: end; min-height: 230px; border: 1px solid var(--border); border-radius: 26px; overflow: hidden;
+      background: linear-gradient(105deg, #271936, #382750); }
+    .cover > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .cover:has(> img)::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, #130d21f5, transparent 82%); }
+    .cover-content { position: relative; z-index: 1; overflow-wrap: anywhere; }
+    .cover-content { padding: 19px; }
+    .cover h2, .cover p { color: #f6f1ff; }
+    .cover .eyebrow { color: #d9bfff; }
+    .eyebrow { font-size: 10px; letter-spacing: .2em; font-weight: 800; color: var(--lilac); }
+    .cover h2 { font-size: 34px; margin: 4px 0 0; font-weight: 850; letter-spacing: -.045em; }
+    .primary, .secondary { border-radius: 99px; min-height: 42px; padding: 8px 17px; font-size: 13px; font-weight: 780; }
+    .primary { background: var(--lilac); color: var(--bg); border: 1px solid transparent; }
+    .secondary { background: transparent; border: 1px solid var(--border); }
+    .full { display: block; width: 100%; margin-top: 11px; }
+    .restore-button { --restore-red: #ff9da7; color: var(--restore-red); border-color: var(--restore-red); }
+    [data-theme="light"] .restore-button { --restore-red: #ac233b; }
+    .restore-button:not(:disabled) { background: color-mix(in srgb, var(--restore-red) 12%, transparent); }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; }
+    .symbol, .icon-button { border: 0; border-radius: 50%; display: inline-grid; place-items: center; color: var(--accent, var(--lilac)); background: color-mix(in srgb, var(--accent, var(--lilac)) 13%, transparent); width: 40px; height: 40px; flex: none; }
+    .icon { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .card { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 9px; text-align: left; }
+    .card strong, .card small { display: block; overflow-wrap: anywhere; }
+    .card small { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .card .arrow { margin-left: auto; color: var(--accent, var(--lilac)); flex: none; }
+    .card[aria-pressed="true"] { border-color: var(--lilac); }
+    [data-theme="light"] .memory-methods .card { background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+    .memory-method { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
+    .memory-method .icon-button { margin-bottom: 9px; justify-self: center; }
+    .memory-help-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .memory-help-heading h2 { margin: 0; }
+    .memory-help-copy { color: var(--muted); }
+    .adb-steps { padding-left: 22px; color: var(--muted); }
+    .adb-status { padding: 11px; border: 1px solid var(--border); border-radius: 12px; }
+    .guide-list { display: grid; gap: 10px; margin-top: 16px; }
+    .guide-card { display: grid; grid-template-columns: minmax(60px, 27%) minmax(0, 1fr) 34px; gap: 10px; align-items: center; padding: 9px; margin: 0; }
+    .guide-card img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; }
+    .guide-card .symbol { width: 34px; height: 34px; }
+    .hot-list { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(124px, 39%); gap: 10px; overflow-x: auto; padding: 4px 0 10px; scroll-snap-type: x proximity; scrollbar-width: none; }
+    .hot-list::-webkit-scrollbar { display: none; }
+    .hot-list .pack-tile { margin: 0; scroll-snap-align: start; }
+    .hot-list .pack-tile strong { padding-bottom: 0; }
+    .hot-list .pack-tile small { padding: 0 12px 9px; }
+    .hot-list .pack-tile:focus-visible { outline-offset: -3px; }
+    .support-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; }
+    .support-row + .support-row { border-top: 1px solid var(--border); }
+    .support-row small { display: block; color: var(--muted); }
+    .support-row button { flex: none; padding-inline: 11px; }
+    button.card:hover, .secondary:hover, .icon-button:hover { border-color: var(--lilac); filter: brightness(1.15); }
+    nav { position: sticky; bottom: 0; z-index: 1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid var(--border); padding: 4px 5px max(5px, env(safe-area-inset-bottom)); background: var(--panel); }
+    nav[hidden] { display: none; }
+    nav button { min-height: 58px; border: 0; background: none; color: var(--muted); font-size: 11px; display: grid; place-items: center; align-content: center; gap: 3px; padding: 4px 0; }
+    nav button span:first-child { width: 51px; height: 28px; border-radius: 99px; display: grid; place-items: center; }
+    nav button span:last-child { min-height: 25px; display: grid; place-items: start center; padding: 0 2px; line-height: 1.15; }
+    nav button[aria-current="page"] { color: var(--text); font-weight: 750; }
+    nav button[aria-current="page"] span:first-child { color: var(--bg); background: var(--lilac); }
+    .search { width: 100%; min-height: 46px; padding: 10px 13px; color: var(--text); border: 1px solid var(--border); background: var(--panel); border-radius: 15px; }
+    .pack-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    .pack-tile { display: block; overflow: hidden; padding: 0; text-align: left; }
+    .pack-tile img { width: 100%; aspect-ratio: 1; display: block; object-fit: cover; }
+    .pack-tile strong { padding: 9px 12px; display: block; }
+    .pack-grid > p { grid-column: 1 / -1; }
+    .upload { text-align: center; display: block; padding: 24px 17px; }
+    .upload .symbol { width: 60px; height: 60px; }
+    .upload .icon { width: 25px; height: 25px; }
+    .upload p { overflow-wrap: anywhere; }
+    .import-history { list-style: none; margin: 0; padding: 0; }
+    .import-history li { padding: 10px 12px; overflow-wrap: anywhere; }
+    .import-history li span { flex: 1; min-width: 0; }
+    .import-history button { flex: none; color: var(--pink); }
+    .muted { color: var(--muted); }
+    dialog { width: min(400px, calc(100% - 34px)); max-height: 88dvh; border: 1px solid var(--border); border-radius: 24px; background: var(--panel); color: var(--text); padding: 19px; }
+    dialog::backdrop { background: #09070cd6; }
+    dialog h2 { margin: 6px 0 9px; font-size: 25px; overflow-wrap: anywhere; }
+    dialog p { margin: 7px 0; }
+    dialog img { width: 100%; max-height: 47dvh; object-fit: contain; border-radius: 13px; display: block; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 17px; flex-wrap: wrap; }
+    .pass-label { display: block; font-weight: 750; margin: 12px 0 5px; }
+    .pass-error { color: var(--pink); font-size: 13px; }
+    [data-theme="light"] .app {
+      background: radial-gradient(ellipse at 4% 0%, #ddd4ff, transparent 62%),
+        radial-gradient(ellipse at 100% 14%, #ffdbe9, transparent 59%),
+        radial-gradient(ellipse at 100% 100%, #edf7d5, transparent 60%),
+        linear-gradient(160deg, #ffecdf, #eee5ff);
+    }
+    [data-theme="light"] .primary { background: #dbf575; color: #222714; }
+    [data-theme="light"] nav { background: #fffcff; border-color: #e2d6eb; }
+    [data-theme="light"] nav button { color: #62546c; }
+    [data-theme="light"] nav button[aria-current="page"] { color: #252c15; }
+    [data-theme="light"] nav button[aria-current="page"] span:first-child { color: #222714; background: #dbf575; }
+    [data-theme="light"] .app-profile::before { background: linear-gradient(100deg, #dbd2ff, #f9dcea); }
+    .feedback { color: var(--mint); margin-top: 12px; }
+    .app-profile, .settings-group { border: 1px solid var(--border); border-radius: 22px; background: var(--panel); margin-bottom: 13px; }
+    .app-profile { position: relative; overflow: hidden; padding: 22px 14px 16px; text-align: center; }
+    .app-profile::before { content: ""; position: absolute; inset: 0 0 auto; height: 65px; background: linear-gradient(105deg, #38274f, #614175); }
+    .app-profile .symbol { position: relative; width: 62px; height: 62px; color: #d9bfff; background: #211b31; box-shadow: 0 0 0 4px var(--panel); }
+    .app-profile .icon { width: 29px; height: 29px; }
+    .app-profile .admin-trigger { color: #ffd477; background: #332443; }
+    .app-profile h2 { margin: 8px 0 2px; font-size: 24px; letter-spacing: -.03em; }
+    .app-profile p { margin: 0; color: var(--muted); font-size: 12px; }
+    .settings-group { padding: 12px 13px 3px; }
+    .settings-group h2 { margin: 0 0 2px; color: var(--muted); font-size: 13px; }
+    .settings-group .card { border: 0; border-radius: 0; padding: 10px 0; margin: 0; }
+    .settings-group .card + .card { border-top: 1px solid var(--border); }
+    .settings-group .card > span:nth-child(2) { flex: 1; min-width: 0; }
+    .settings-group button.card:hover { filter: none; color: var(--lilac); }
+    @keyframes content-enter {
+      from { opacity: 0; transform: translateY(7px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes dialog-enter {
+      from { opacity: 0; transform: translateY(10px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes backdrop-enter {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    main:not([data-page="settings"]) > :first-child { animation: content-enter 150ms ease-out; }
+    dialog[open] { animation: dialog-enter 190ms ease-out; }
+    dialog[open]::backdrop { animation: backdrop-enter 160ms ease-out; }
+    button, nav button span:first-child {
+      transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+    }
+    .pack-tile img, .guide-card img { transition: filter 180ms ease; }
+    @media (hover: hover) {
+      button.card:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 5px 14px #18102022; }
+      .pack-tile:hover img, .guide-card:hover img { filter: saturate(1.12) brightness(1.06); }
+    }
+    button:not(:disabled):active { transform: scale(.97); }
+    @media (prefers-reduced-motion: reduce) {
+      main:not([data-page="settings"]) > :first-child, dialog[open], dialog[open]::backdrop { animation: none; }
+      button, nav button span:first-child, .pack-tile img, .guide-card img { transition: none; }
+      button.card:not(:disabled):hover, button:not(:disabled):active { transform: none; }
+    }
+      /* SenceLab 1.5 */
+    :root {
+      --fx-glow: #b389ff45; --fx-edge: #c3a0fa73;
+      --fx-tint: #a56bf519; --fx-sheen: #e3c3ff24; --fx-glass: #211a30e8;
+      --fx-badge: linear-gradient(140deg, #382658, #211a30 63%, #442344);
+    }
+    :root[data-theme="light"] {
+      --fx-glow: #8452be36; --fx-edge: #a680cd84;
+      --fx-tint: #bd8aee17; --fx-sheen: #fff8ffe0; --fx-glass: #fffbfff0;
+      --fx-badge: linear-gradient(145deg, #fff4fb, #eadbff 62%, #f5dbea);
+    }
+    header > .symbol, header > .icon-button {
+      background: var(--fx-badge);
+      box-shadow: inset 0 1px 0 var(--fx-sheen), 0 3px 12px var(--fx-glow);
+    }
+    .card, .settings-group, .app-profile {
+      background-image: linear-gradient(145deg, var(--fx-tint), transparent 58%);
+      box-shadow: inset 0 1px 0 var(--fx-sheen);
+    }
+    dialog {
+      background: linear-gradient(145deg, var(--fx-tint), transparent 68%), var(--fx-glass);
+      box-shadow: inset 0 1px 0 var(--fx-sheen), 0 16px 38px #160d273d, 0 0 18px var(--fx-glow);
+    }
+    .primary {
+      background-image: linear-gradient(115deg, var(--fx-sheen), transparent 60%);
+      box-shadow: inset 0 1px 0 var(--fx-sheen), 0 3px 12px var(--fx-glow);
+    }
+    nav button[aria-current="page"] span:first-child {
+      box-shadow: inset 0 1px 0 #ffffff6b, 0 2px 10px var(--fx-glow);
+    }
+    .search:focus-visible { box-shadow: 0 0 0 4px var(--fx-glow); }
+    .cover-content { isolation: isolate; }
+    .cover-content::after {
+      content: ""; position: absolute; inset: 0 0 auto; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--fx-sheen), var(--fx-edge), transparent);
+      opacity: 0; pointer-events: none;
+    }
+    @keyframes sl11-sweep {
+      from { transform: translateX(-55%); opacity: 0; }
+      45% { opacity: .9; }
+      to { transform: translateX(55%); opacity: 0; }
+    }
+    @keyframes sl11-tab {
+      from { opacity: .72; transform: scale(.89); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @media (hover: hover) {
+      button.card:not(:disabled):hover, .primary:not(:disabled):hover {
+        border-color: var(--fx-edge);
+        box-shadow: 0 5px 15px var(--fx-glow);
+      }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      nav button[aria-current="page"] span:first-child { animation: sl11-tab 190ms ease-out; }
+    }
+    /* Blur is limited to fine-pointer displays and one open layer. */
+    [data-action] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    .permission-detail { display: grid; gap: 5px; margin: 8px 0 0; }
+    .permission-detail div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+    .permission-detail dt { font-weight: 750; }
+    .permission-detail dd { margin: 0; color: var(--muted); }
+    .permission-detail .ready { color: var(--mint); font-weight: 750; }
+    @keyframes badge-in {
+      from { opacity: .55; transform: scale(.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      header .brand-mark { animation: badge-in 230ms ease-out; }
+      main[data-page="home"] .cover, main[data-page="permissions"] > .card:first-of-type {
+        animation: content-enter 210ms 45ms ease-out both;
+      }
+    }
+    html, body { overscroll-behavior: none; }
+    .hot-list { overscroll-behavior-x: none; }
+    @media (hover: none) {
+      button { transition: transform 110ms ease, background-color 110ms ease; }
+    }
+    main[data-page="settings"] button.card:not(:disabled):is(:hover, :active) {
+      transform: none;
+      box-shadow: var(--settings-row-shadow, inset 0 1px 0 var(--fx-sheen));
+    }
+    :root[data-theme="dark"] .settings-group h2 + .card {
+      --settings-row-shadow: none;
+      box-shadow: var(--settings-row-shadow);
+    }
+    header > .brand-mark { overflow: hidden; background: #000; }
+    .brand-mark img { display: block; width: 86%; height: 86%; min-width: 0; min-height: 0; object-fit: cover; object-position: 50% 46%; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header id="header"></header>
+    <main id="screen"></main>
+    <nav id="tabs" aria-label="Điều hướng chính"></nav>
+  </div>
+  <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+  <script>
+    const paths = {
+      bolt: '<path d="m13 2-8 12h6l-1 8 9-12h-6z"/>',
+      home: '<path d="m3 11 9-8 9 8M5 9v11h5v-6h4v6h5V9"/>',
+      grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+      file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M12 10v7m-3-3 3 3 3-3"/>',
+      reset: '<path d="M3 12a9 9 0 1 1 3 7M3 5v7h7"/>',
+      wrench: '<path d="M21 6a5 5 0 0 1-6.5 5.5l-8 8a2 2 0 0 1-3-3l8-8A5 5 0 0 1 17 2l-3 3 4 4 3-3Z"/>',
+      settings: '<circle cx="12" cy="12" r="3"/><path d="m10 2-.6 2.7-2.5 1.4-2.7-.8-2 3.4 2 2v2.8l-2 2 2 3.4 2.7-.8 2.5 1.4.6 2.5h4l.6-2.5 2.5-1.4 2.7.8 2-3.4-2-2v-2.8l2-2-2-3.4-2.7.8-2.5-1.4L14 2z"/>',
+      left: '<path d="m15 5-7 7 7 7"/>',
+      right: '<path d="m9 5 7 7-7 7"/>',
+      star: '<path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.4-5.7-3-5.7 3 1.1-6.4L2.8 9.7l6.4-.9z"/>',
+      map: '<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zm6-3v15m6-12v15"/>',
+      target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2"/>',
+      link: '<path d="M9 15l6-6m-5 8-2 2a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2-2 2-2a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"/>',
+      wifi: '<path d="M3 9a14 14 0 0 1 18 0m-15 4a9 9 0 0 1 12 0m-9 4a4 4 0 0 1 6 0m-3 3h.01"/>',
+      moon: '<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10Z"/>',
+      alert: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3h.01"/>',
+      crown: '<path d="m3 7 5 4 4-7 4 7 5-4-2 12H5zM5 16h14"/>',
+      tiktok: '<path d="M14 4v11a4 4 0 1 1-4-4m4-7c1 3 3 5 6 5"/>',
+      telegram: '<path d="m3 11 18-7-4 16-6-5-4 3 1-5 9-6-11 5z"/>',
+      globe: '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>',
+      play: '<path d="m9 5 11 7-11 7z"/>',
+      people: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v2m0-15a3 3 0 0 1 0 6m3 3a5 5 0 0 1 3 5v1"/>',
+      info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/>'
+    };
+    const icon = name => '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + paths[name] + '</svg>';
+    const symbol = (name, color = "lilac") => '<span class="symbol" style="--accent:var(--' + color + ')">' + icon(name) + '</span>';
+    const escapeText = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+    const native = window.SenceAndroid;
+    let driveEntries = [];
+    let driveStatus = "";
+    let driveLoading = false;
+    let queryFrame = 0;
+    let usedMaps = [];
+    let applying = false;
+    let memoryStatus = "Đang kiểm tra quyền bộ nhớ…";
+    let memoryDetails = null;
+    try { usedMaps = JSON.parse(localStorage.getItem("sence.usedMaps") || "[]"); } catch {}
+    const app = {
+      page: "home", origins: {}, mode: "", pack: null, bundles: [], pending: null,
+      query: "", feedback: "", dark: false, admin: false
+    };
+    try { app.dark = localStorage.getItem("skinlab.theme") === "dark"; app.bundles = JSON.parse(native.listBundles()); app.pack = JSON.parse(native.active() || "null"); } catch {}
+    app.admin = native.isAdmin();
+    let hotPacks = [];
+    let onlineDownloads = null;
+    const downloadCount = new Intl.NumberFormat("vi-VN");
+    const guides = [
+      ["Kết nối Shizuku", "Xem cách cấp quyền qua Shizuku.", "Bật Shizuku trên thiết bị. Trong tab Quyền, mở Cấp quyền bộ nhớ, chọn Shizuku rồi xác nhận yêu cầu cấp quyền.", "bang"],
+      ["Cấp quyền qua ADB WiFi hoặc SAF", "Xem các phương thức truy cập còn lại.", "Mở Cấp quyền bộ nhớ trong tab Quyền. Bấm dấu chấm than cạnh ADB WiFi, SAF V1 hoặc SAF V2 để đọc hướng dẫn riêng.", "guong"],
+      ["Áp dụng map từ Kho Map", "Xem trước map và nhập pass.", "Chọn một map trong Kho Map, nhập pass của map rồi bấm Áp dụng. Map đang dùng sẽ xuất hiện trên Trang chủ.", "sakura"],
+      ["Nhập AssetBundle", "Đặt tên và áp dụng tệp đã nhập.", "Chọn một tệp .assetbundle, đặt tên, lưu rồi bấm Áp dụng cạnh tệp.", "hai-tac"],
+      ["Gỡ map đang dùng", "Đặt lại map trên Trang chủ.", "Trên Trang chủ, bấm Gỡ map đang dùng rồi xác nhận. Thẻ map sẽ trở về trạng thái chưa áp dụng.", "guong"],
+    ];
+    const tabs = [
+      ["home", "Trang chủ", "home"], ["catalog", "Kho Map", "grid"],
+      ["import", "Nhập AssetBundle", "file"], ["permissions", "Quyền", "wrench"],
+      ["settings", "Cài đặt chung", "settings"]
+    ];
+    const memoryMethods = [
+      ["Shizuku", "Bật Shizuku rồi cấp quyền cho SenceLab.", "link", "lilac", "Cài Shizuku và khởi động bằng Gỡ lỗi không dây hoặc qua máy tính. Sau đó mở lại SenceLab và cho phép khi Shizuku yêu cầu cấp quyền."],
+      ["ADB WiFi", "Ghép đôi bằng mã ngay trong SenceLab.", "wifi", "mint", "Bật Gỡ lỗi không dây, chọn Ghép nối thiết bị bằng mã rồi nhập mã từ thông báo SenceLab. Quay lại bấm Bắt đầu."],
+      ["SAF V1", "Chọn thư mục đích qua trình chọn tệp Android.", "file", "amber", "SAF dùng trình chọn thư mục của Android. Chọn một thư mục mà Android cho phép truy cập rồi xác nhận. Trên các phiên bản Android mới, trình chọn thư mục chuẩn hạn chế quyền vào Android/data của ứng dụng khác."],
+      ["SAF V2", "Thử cấp lại quyền qua trình chọn tệp Android.", "file", "amber", "Mở lại trình chọn tệp Android để cấp quyền cho đúng tệp map. Cả hai mục SAF đều tuân theo giới hạn của bộ chọn tệp trên thiết bị."],
+    ];
+    const contactLinks = {
+      "community-telegram": "https://t.me/ttt_cth",
+      "community-tiktok": "https://tiktok.com/@autochess.lqm",
+      "community-youtube": "https://www.youtube.com/@battuthanhthan",
+    };
+    const screen = document.querySelector("#screen");
+    const header = document.querySelector("#header");
+    const nav = document.querySelector("#tabs");
+    const dialog = document.querySelector("#dialog");
+    const title = (name, subtitle) => '<h1>' + name + '</h1><p class="intro">' + subtitle + '</p>';
+    const row = (label, detail, glyph, color, action = "", pressed = null) => {
+      const tag = action ? "button" : "div";
+      return '<' + tag + ' class="card" style="--accent:var(--' + color + ')"' +
+        (action ? ' data-action="' + action + '"' : '') +
+        (pressed !== null ? ' aria-pressed="' + pressed + '"' : '') + '>' +
+        symbol(glyph, color) + '<span><strong>' + escapeText(label) + '</strong><small>' + escapeText(detail) +
+        '</small></span>' + (action && pressed === null ? '<span class="arrow">' + icon("right") + '</span>' : '') +
+        '</' + tag + '>';
+    };
+    const button = (label, action, classes = "primary", disabled = false) =>
+      '<button class="' + classes + '" data-action="' + action + '"' + (disabled ? ' disabled' : '') + '>' + label + '</button>';
+    const group = (label, content) => '<section class="settings-group"><h2>' + label + '</h2>' + content + '</section>';
+    const supportRow = (label, detail, actionLabel, action) =>
+      '<div class="support-row"><div><strong>' + label + '</strong><small>' + detail + '</small></div>' +
+      button(actionLabel, action, "secondary") + '</div>';
+
+    function go(page, useBack = false) {
+      if (useBack) app.origins[page] = app.page;
+      if (page === "catalog" && !driveEntries.length && !driveStatus) refreshDrive();
+      app.page = page;
+      app.feedback = "";
+      render();
+      window.scrollTo(0, 0);
+    }
+
+    function back() {
+      go(app.origins[app.page] || "home");
+    }
+
+    function hotRanking() {
+      if (!hotPacks.length) return '<p class="muted">' +
+        (driveLoading ? "Đang tải bảng xếp hạng…" : "Chưa có dữ liệu lượt tải.") + '</p>';
+      return '<div class="hot-list">' + hotPacks.map((pack, index) =>
+        '<button class="card pack-tile" data-action="hot-pack-' + index + '"><img src="' +
+        escapeText(pack.image) + '" alt="" loading="lazy" decoding="async"><strong>' +
+        escapeText(pack.name) + '</strong><small>' + downloadCount.format(pack.downloads) +
+        ' lượt tải</small></button>').join("") + '</div>';
+    }
+
+    function driveCatalog() {
+      const query = app.query.trim().toLocaleLowerCase("vi");
+      const entries = driveEntries.map((entry, index) => ({ ...entry, index }))
+        .filter(entry => entry.name.toLocaleLowerCase("vi").includes(query));
+      return (driveStatus ? '<p class="muted">' + escapeText(driveStatus) + '</p>' : '') +
+        '<div class="pack-grid">' + entries.map(entry =>
+          '<button class="card pack-tile" data-action="drive-entry-' + entry.index + '">' +
+          '<img src="' + escapeText(entry.image) + '" alt="" loading="lazy" decoding="async"><strong>' + escapeText(entry.name) + '</strong></button>').join("") + '</div>' +
+        (!entries.length && !driveStatus ? '<p class="muted">Không tìm thấy map phù hợp.</p>' : '') +
+        button("Làm mới danh mục", "drive-refresh", "secondary full");
+    }
+    const screens = {
+      home: () => '<div class="greeting"><p>Chào bạn 👋</p><h1>Chúc bạn một ngày tốt lành.</h1></div>' +
+        '<section class="cover">' + (app.pack?.image ? '<img src="' + app.pack.image + '" alt="">' : "") +
+        '<div class="cover-content"><div class="eyebrow">File mod đang dùng</div><h2>' +
+        escapeText(app.pack?.name || "Chưa áp dụng file mod") + '</h2></div></section>' +
+        button("Gỡ mod", "restore", "secondary full restore-button", applying) +
+        '<h2>Trạng thái</h2><div id="home-permissions">' + homePermissions() + '</div>' +
+        '<section aria-labelledby="hot-title"><h2 id="hot-title">HOT</h2><div id="hot-results" aria-live="polite">' +
+        hotRanking() + '</div></section>',
+      catalog: () => title("Kho Map", "Chọn map để xem ảnh và áp dụng.") +
+        '<h2>Lịch sử dùng</h2>' + (usedMaps.length ? '<ul class="import-history">' +
+          usedMaps.slice(0, 10).map(map => '<li class="card">' + escapeText(map.name) + '</li>').join("") +
+          '</ul>' : '<p class="muted">Chưa áp dụng map nào.</p>') +
+        '<input class="search" id="search" type="search" aria-label="Tìm tên map" placeholder="Tìm tên map" value="' + escapeText(app.query) + '">' +
+        '<div id="drive-results">' + driveCatalog() + '</div>',
+      import: () => title("Nhập AssetBundle", "Chọn tệp .assetbundle và đặt tên để lưu vào danh sách.") +
+        '<section class="upload card">' + symbol("file", "mint") +
+        button("Chọn tệp .assetbundle", "pick", "primary full") +
+        '</section><h2>Đã nhập</h2>' + (app.bundles.length
+          ? '<ul class="import-history">' + app.bundles.map((file, index) =>
+            '<li class="card"><span>' + escapeText(file.name) + '</span>' + button("Áp dụng", "local-apply-" + index) +
+            '<button class="secondary" aria-label="Xóa ' + escapeText(file.name) +
+            '" data-action="delete-bundle-' + index + '">Xóa</button></li>').join("") + '</ul>'
+          : '<p class="muted">Chưa nhập tệp AssetBundle.</p>'),
+      permissions: () => title("Quyền", "Thiết lập quyền trước khi áp dụng map.") +
+        row("Trạng thái quyền", memoryStatus, "link", "mint") +
+        row("Cấp quyền bộ nhớ", "Chọn hoặc đổi phương thức truy cập", "wrench", "lilac", "access") +
+        row("Kiểm tra quyền", "Kiểm tra quyền ghi vào tệp đích", "info", "mint", "permission-check") +
+        row("Kiểm tra tệp đang dùng", "Đối chiếu nội dung bundle trên máy", "file", "lilac", "verify-map") +
+        row("Hướng dẫn cấp quyền", "Xem các bước thiết lập", "info", "pink", "guide") +
+        (app.mode ? button("Đặt lại lựa chọn", "permission-reset", "secondary full") : ""),
+      access: () => title("Cấp quyền bộ nhớ", "Chọn cách cấp quyền để SenceLab ghi file vào trò chơi.") +
+        '<div class="memory-methods">' + memoryMethods.map(([name, detail, glyph, color], index) =>
+          '<div class="memory-method">' +
+          row(name, detail, glyph, color, "memory-" + index, app.mode === name) +
+          '<button class="icon-button" style="--accent:var(--' + color + ')" aria-label="Hướng dẫn ' + name +
+          '" data-action="help-memory-' + index + '">' + icon("alert") + '</button></div>').join("") + '</div>' +
+        '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>' +
+        button("Xong", "back", "primary full"),
+      settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
+        '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 1.6.3</p></section>' +
+        group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
+        group("Tiện ích", row("Cấp quyền bộ nhớ", memoryStatus, "link", "mint", "access")) +
+        group("Hệ thống & hỗ trợ",
+          supportRow("Phiên bản ứng dụng", "v1.6.3 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Xóa bộ nhớ đệm (Cache)", "Dọn ảnh và tệp tạm", "Xóa Cache", "cache-confirm")) +
+        group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
+          row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
+          row("YouTube", "Video hướng dẫn và cập nhật", "play", "pink", "community-youtube")),
+      guide: () => '<h1>Hướng dẫn</h1><div class="guide-list">' +
+        guides.map(([name, summary, , image], index) =>
+          '<button class="card guide-card" data-action="guide-item-' + index + '">' +
+          '<img src="./preview-assets/' + image + '.png" alt="" loading="lazy" decoding="async"><span><strong>' + name + '</strong><small>' +
+          summary + '</small></span>' + symbol("play") + '</button>').join("") + '</div>'
+    };
+
+    function render() {
+      const changedPage = screen.dataset.page !== app.page;
+      screen.dataset.page = app.page;
+      const root = document.documentElement;
+      const theme = app.dark ? "dark" : "light";
+      if (root.dataset.theme !== theme) {
+        root.dataset.theme = theme;
+        document.querySelector('meta[name="theme-color"]').content = app.dark ? "#101017" : "#f8eef4";
+        native.setTheme(app.dark);
+      }
+      const isTab = tabs.some(([page]) => page === app.page);
+      const headerMode = isTab ? "tabs" : "back";
+      if (header.dataset.mode !== headerMode) {
+        header.dataset.mode = headerMode;
+        header.innerHTML = (isTab ? '<span class="symbol brand-mark"><img src="./preview-assets/sencelab-logo.png" alt=""></span>' : '<button class="icon-button" aria-label="Quay lại" data-action="back">' + icon("left") + '</button>') +
+          '<span class="brand">SenceLab<small>Liên Quân Mobile</small></span>' + (isTab ? '<button class="icon-button" aria-label="Hướng dẫn" data-action="guide">' + icon("info") + '</button>' : "");
+      }
+      nav.hidden = !isTab;
+      if (changedPage) {
+        nav.querySelector('[aria-current="page"]')?.removeAttribute("aria-current");
+        nav.querySelector('[data-action="tab-' + app.page + '"]')?.setAttribute("aria-current", "page");
+      }
+      screen.innerHTML = screens[app.page]() + (app.feedback ? '<p class="feedback" role="status">' + escapeText(app.feedback) + '</p>' : "");
+    }
+
+    function permissionDetails() {
+      if (!memoryDetails) return '<p class="muted">' + escapeText(memoryStatus) + '</p>';
+      return '<dl class="permission-detail">' +
+        [["Shizuku", memoryDetails.shizuku], ["ADB WiFi", memoryDetails.adb], ["SAF", memoryDetails.saf]]
+          .map(([name, status]) => '<div><dt>' + name + '</dt><dd' + (status === "Sẵn sàng" ? ' class="ready"' : '') +
+            '>' + escapeText(status) + '</dd></div>').join("") + '</dl>';
+    }
+
+    function homePermissions() {
+      return row("Cấp quyền bộ nhớ", memoryDetails?.ready ? "Có quyền ghi tệp map" : "Xem trạng thái quyền", "link", "lilac", "access") +
+        permissionDetails();
+    }
+
+    function showPack(pack) {
+      app.pending = pack;
+      dialog.innerHTML = '<h2 id="dialog-title">' + escapeText(pack.name) + '</h2>' +
+        (pack.image ? '<img src="' + escapeText(pack.image) + '" alt="Ảnh xem trước ' + escapeText(pack.name) + '">' : "") +
+        (pack.detail ? '<p>' + escapeText(pack.detail) + '</p>' : "") + (pack.image
+          ? '<label class="pass-label" for="map-pass">Pass</label><input class="search" id="map-pass" autocomplete="off" aria-describedby="pass-error"' +
+            (app.admin ? (pack.bundleId ? ' type="text" placeholder="Đang đọc pass.txt…"' : ' type="text" value="0001" readonly') : ' type="password"') +
+            '><p id="pass-error" class="pass-error" role="alert" hidden></p>'
+          : '') + '<div class="dialog-actions">' + button("Đóng", "close", "secondary") +
+        button("Áp dụng", "apply") + '</div>';
+      dialog.showModal();
+      if (pack.bundleId && !pack.passId) {
+        const error = dialog.querySelector("#pass-error");
+        error.textContent = "Map này chưa có pass.txt công khai.";
+        error.hidden = false;
+        dialog.querySelector('[data-action="apply"]').disabled = true;
+      } else if (pack.bundleId && app.admin) native.mapPass(pack.passId);
+    }
+
+    function validMapPass() {
+      const input = dialog.querySelector("#map-pass");
+      if (!input || (app.pending?.bundleId ? input.value.trim() : input.value === "0001")) return true;
+      const error = dialog.querySelector("#pass-error");
+      error.textContent = input.value ? "Pass không đúng." : "Nhập pass để tiếp tục.";
+      error.hidden = false;
+      input.setAttribute("aria-invalid", "true");
+      input.focus();
+      return false;
+    }
+
+    dialog.addEventListener("keydown", event => {
+      if (event.key === "Enter" && event.target.id === "map-pass") {
+        event.preventDefault();
+        dialog.querySelector('[data-action="apply"]').click();
+      }
+    });
+
+    dialog.addEventListener("submit", event => {
+      if (event.target.id !== "admin-form") return;
+      event.preventDefault();
+      const fields = new FormData(event.target);
+      if (!native.adminLogin(fields.get("username"), fields.get("password"))) {
+        const error = dialog.querySelector("#admin-error");
+        error.hidden = false;
+        error.textContent = "Tài khoản hoặc mật khẩu không đúng.";
+        return;
+      }
+      app.admin = true;
+      dialog.close();
+      render();
+    });
+
+    document.addEventListener("input", event => {
+      if (event.target.id === "search") {
+        app.query = event.target.value;
+        if (queryFrame) return;
+        queryFrame = requestAnimationFrame(() => {
+          queryFrame = 0;
+          const results = document.querySelector("#drive-results");
+          if (results) results.innerHTML = driveCatalog();
+        });
+      }
+    });
+
+    function applyPack(pack) {
+      if (applying) return;
+      applying = true;
+      app.pending = null;
+      dialog.innerHTML = '<h2 id="dialog-title">Đang áp dụng…</h2><p>Đang kiểm tra và ghi tệp map.</p>' +
+        '<progress aria-label="Đang áp dụng" style="width:100%"></progress>';
+      if (!dialog.open) dialog.showModal();
+      native.applyMap(JSON.stringify(pack));
+    }
+
+    document.addEventListener("click", event => {
+      const action = event.target.closest("[data-action]")?.dataset.action;
+      if (!action) return;
+      if (action.startsWith("tab-")) return go(action.slice(4));
+      if (action.startsWith("drive-entry-")) return showPack(driveEntries[Number(action.slice(12))]);
+      if (action.startsWith("hot-pack-")) return showPack(hotPacks[Number(action.slice(9))]);
+      if (action.startsWith("local-apply-")) return applyPack(app.bundles[Number(action.slice(12))]);
+      if (action.startsWith("delete-bundle-")) return native.deleteBundle(app.bundles[Number(action.slice(14))].localId);
+      if (action.startsWith("guide-item-")) {
+        const [name, , detail] = guides[Number(action.slice(11))];
+        dialog.innerHTML = '<h2 id="dialog-title">' + name + '</h2><p>' + detail + '</p>' +
+          button("Đã hiểu", "close", "primary full");
+        dialog.showModal();
+        return;
+      }
+      if (action.startsWith("help-memory-")) {
+        const [name, , , color, help] = memoryMethods[Number(action.slice(12))];
+        dialog.innerHTML = '<div class="memory-help-heading">' + symbol("alert", color) +
+          '<h2 id="dialog-title">' + escapeText(name) + '</h2></div><p class="memory-help-copy">' +
+          escapeText(help) + '</p>' + button("Đã hiểu", "close", "primary full");
+        dialog.showModal();
+        return;
+      }
+      if (action.startsWith("memory-")) {
+        app.mode = memoryMethods[Number(action.slice(7))][0];
+        render();
+        screen.querySelector('[data-action="' + action + '"]').focus();
+        if (app.mode === "ADB WiFi") showAdbPairing();
+        native.requestMemory(app.mode);
+        return;
+      }
+
+      switch (action) {
+        case "adb-settings": native.adbSettings(); break;
+        case "adb-connect": native.adbConnect(); break;
+        case "adb-notification-settings": native.adbNotificationSettings(); break;
+        case "adb-pair": {
+          const code = dialog.querySelector("#adb-code");
+          const port = dialog.querySelector("#adb-port");
+          native.adbPair(code.value.trim(), port.value.trim());
+          break;
+        }
+        case "version-check":
+          notice("Phiên bản ứng dụng", "Đang kiểm tra GitHub Releases…");
+          native.checkVersion();
+          break;
+        case "cache-confirm":
+          dialog.innerHTML = '<h2 id="dialog-title">Xóa bộ nhớ đệm?</h2><p>Xóa ảnh lưu đệm và tệp tạm của ứng dụng. Các tệp đã nhập và bản sao lưu vẫn được giữ.</p><div class="dialog-actions">' +
+            button("Hủy", "close", "secondary") + button("Xóa Cache", "cache-clear") + '</div>';
+          dialog.showModal();
+          break;
+        case "cache-clear":
+          dialog.innerHTML = '<h2 id="dialog-title">Đang xóa bộ nhớ đệm…</h2><progress aria-label="Đang xóa bộ nhớ đệm"></progress>';
+          native.clearCache();
+          break;
+        case "permission-check":
+          dialog.dataset.awaiting = "permission";
+          notice("Kiểm tra quyền", "Đang kiểm tra quyền ghi vào tệp map…");
+          native.checkMemory();
+          break;
+        case "verify-map":
+          dialog.dataset.awaiting = "map-state";
+          notice("Kiểm tra tệp đang dùng", "Đang đọc và đối chiếu tệp map…");
+          native.verifyInstalled();
+          break;
+        case "permission-reset":
+          app.mode = "";
+          app.feedback = "Đã đặt lại lựa chọn cấp quyền.";
+          render();
+          break;
+        case "access": case "guide": go(action, true); break;
+        case "back": back(); break;
+        case "theme":
+          dialog.innerHTML = '<h2 id="dialog-title">Chủ đề</h2><div class="dialog-actions">' +
+            button("Sáng", "theme-light", app.dark ? "secondary" : "primary") +
+            button("Tối", "theme-dark", app.dark ? "primary" : "secondary") + '</div>';
+          dialog.showModal();
+          break;
+        case "theme-light": case "theme-dark":
+          app.dark = action === "theme-dark";
+          try { localStorage.setItem("skinlab.theme", app.dark ? "dark" : "light"); } catch {}
+          dialog.close();
+          render();
+          screen.querySelector('[data-action="theme"]').focus();
+          break;
+        case "admin":
+          dialog.innerHTML = '<h2 id="dialog-title">Admin Login</h2>' + (app.admin
+            ? '<p>Đã đăng nhập Admin.</p><div class="dialog-actions">' + button("Đăng xuất", "admin-logout", "secondary") + '</div>'
+            : '<form id="admin-form">' +
+              '<label class="pass-label" for="admin-user">Tài khoản</label><input class="search" id="admin-user" name="username" autocomplete="username" required>' +
+              '<label class="pass-label" for="admin-password">Mật khẩu</label><input class="search" id="admin-password" name="password" type="password" autocomplete="current-password" required>' +
+              '<p id="admin-error" class="pass-error" role="alert" hidden></p><div class="dialog-actions"><button type="submit" class="primary">Đăng nhập</button></div></form>');
+          dialog.showModal();
+          break;
+        case "admin-logout":
+          app.admin = false;
+          native.adminLogout();
+          dialog.close();
+          render();
+          break;
+        case "drive-refresh": refreshDrive(); render(); break;
+        case "release-download": native.openExternal(releaseUrl); break;
+        case "community-youtube": case "community-tiktok": case "community-telegram":
+          native.openExternal(contactLinks[action]);
+          break;
+        case "pick": native.chooseAssetBundle(); break;
+        case "save-bundle": {
+          const input = dialog.querySelector("#bundle-name");
+          const name = input.value.trim();
+          if (!name) {
+            input.focus();
+            break;
+          }
+          dialog.innerHTML = '<h2 id="dialog-title">Đang nhập AssetBundle…</h2><progress aria-label="Đang nhập"></progress>';
+          native.saveBundle(name);
+          break;
+        }
+        case "apply":
+          if (applying || !validMapPass()) break;
+          applyPack({ ...app.pending, enteredPass: dialog.querySelector("#map-pass")?.value.trim() });
+          break;
+        case "restore": {
+          dialog.innerHTML = '<h2 id="dialog-title">Gỡ mod?</h2><p>SenceLab sẽ tải map gốc từ Mapgoc và thay vào tệp của trò chơi.</p><div class="dialog-actions">' +
+            button("Hủy", "close", "secondary") + button("Gỡ mod", "confirm-restore") + '</div>';
+          dialog.showModal();
+          break;
+        }
+        case "confirm-restore":
+          if (applying) break;
+          applying = true;
+          dialog.innerHTML = '<h2 id="dialog-title">Đang khôi phục…</h2><p>Đang tải và xác minh tệp gốc từ Mapgoc.</p><progress aria-label="Đang khôi phục"></progress>';
+          native.restore();
+          break;
+        case "close": app.pending = null; dialog.close(); break;
+      }
+    });
+    dialog.addEventListener("cancel", event => {
+      if (applying) event.preventDefault();
+      else app.pending = null;
+    });
+    dialog.addEventListener("close", () => { delete dialog.dataset.awaiting; });
+    window.senceBack = () => {
+      if (dialog.open) {
+        if (!applying) {
+          app.pending = null;
+          dialog.close();
+        }
+        return true;
+      }
+      if (app.page === "home") return false;
+      if (tabs.some(([page]) => page === app.page)) go("home");
+      else back();
+      return true;
+    };
+    let releaseUrl = "";
+    function showAdbPairing() {
+      dialog.innerHTML = '<div class="memory-help-heading">' + symbol("wifi", "mint") +
+        '<h2 id="dialog-title">ADB WiFi</h2></div><p>Ghép đôi bằng mã ngay trong SenceLab.</p>' +
+        '<ol class="adb-steps"><li>Bấm Mở cài đặt.</li><li>Bật Tùy chọn nhà phát triển và Gỡ lỗi không dây.</li>' +
+        '<li>Chọn Ghép nối thiết bị bằng mã và giữ cửa sổ này mở.</li><li>Nhập mã trên thông báo SenceLab.</li>' +
+        '<li>Quay lại và bấm Bắt đầu.</li></ol>' +
+        '<p id="adb-status" class="adb-status" role="status">Đang dò màn hình ghép đôi…</p>' +
+        '<details><summary>Nhập mã trong ứng dụng</summary><p>Dùng chia đôi màn hình nếu cần giữ cửa sổ ghép nối mở.</p>' +
+        '<label class="pass-label" for="adb-code">Mã ghép nối</label>' +
+        '<input class="search" id="adb-code" inputmode="numeric" maxlength="6" autocomplete="off">' +
+        '<label class="pass-label" for="adb-port">Cổng ghép đôi (khi không tự dò được)</label>' +
+        '<input class="search" id="adb-port" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="Số sau dấu : trên cửa sổ ghép nối">' +
+        button("Ghép đôi", "adb-pair", "secondary full") +
+        button("Cài đặt thông báo", "adb-notification-settings", "secondary full") + '</details>' +
+        '<div class="dialog-actions">' + button("Mở cài đặt", "adb-settings", "secondary") +
+        button("Bắt đầu", "adb-connect") + button("Hủy", "close", "secondary") + '</div>';
+      dialog.showModal();
+    }
+    function refreshDrive() {
+      if (driveLoading) return;
+      driveLoading = true;
+      driveStatus = "Đang tải danh mục Drive…";
+      const hot = document.querySelector("#hot-results");
+      if (hot) hot.innerHTML = hotRanking();
+      native.loadDrive();
+      native.refreshDownloads();
+    }
+    function updateHotRanking() {
+      hotPacks = driveEntries
+        .map(pack => ({ ...pack, downloads: onlineDownloads === null ? pack.downloads : onlineDownloads[pack.id] }))
+        .filter(pack => Number.isSafeInteger(pack.downloads) && pack.downloads >= 0)
+        .sort((a, b) => b.downloads - a.downloads || a.name.localeCompare(b.name, "vi")).slice(0, 5);
+      const hot = document.querySelector("#hot-results");
+      if (hot) hot.innerHTML = hotRanking();
+    }
+    function notice(title, message, action = "") {
+      dialog.innerHTML = '<h2 id="dialog-title">' + escapeText(title) + '</h2><p>' + escapeText(message) +
+        '</p><div class="dialog-actions">' + button("Đóng", "close", "secondary") +
+        (action ? button("Tải APK", action) : "") + '</div>';
+      if (!dialog.open) dialog.showModal();
+    }
+    window.senceResult = (event, result) => {
+      if (event === "cache") {
+        notice("Bộ nhớ đệm", result.message || result.error || "Không xóa được bộ nhớ đệm.");
+        return;
+      }
+      if (event === "downloads") {
+        if (result.ranking) {
+          onlineDownloads = result.ranking;
+          updateHotRanking();
+        }
+        return;
+      }
+      if (event === "adb") {
+        const status = dialog.querySelector("#adb-status");
+        if (dialog.open && status) status.textContent = result.message;
+        if (result.message.includes("đã kết nối")) native.checkMemory();
+        return;
+      }
+      if (event === "permission") {
+        memoryStatus = result.message || result.error || "Chưa có quyền ghi.";
+        if (result.shizuku && result.adb && result.saf) memoryDetails = result;
+        if (dialog.open && dialog.dataset.awaiting === "permission") {
+          delete dialog.dataset.awaiting;
+          dialog.innerHTML = '<h2 id="dialog-title">Kiểm tra quyền</h2>' +
+            (result.error ? '<p>' + escapeText(result.error) + '</p>' : permissionDetails()) +
+            button("Đóng", "close", "primary full");
+        }
+        const home = document.querySelector("#home-permissions");
+        if (home) home.innerHTML = homePermissions();
+        else if (["permissions", "access", "settings"].includes(app.page)) render();
+        return;
+      }
+      if (event === "map-state") {
+        if (dialog.open && dialog.dataset.awaiting === "map-state") {
+          delete dialog.dataset.awaiting;
+          notice("Kiểm tra tệp đang dùng", result.message || result.error || "Chưa kiểm tra được tệp map.");
+        }
+        return;
+      }
+      if (event === "map-pass") {
+        const input = dialog.querySelector("#map-pass");
+        if (input && app.pending?.passId === result.id && result.pass) input.value = result.pass;
+        return;
+      }
+      if (event === "apply" || event === "restore") {
+        applying = false;
+        if (result.cancelled) {
+          if (dialog.open) dialog.close();
+          return;
+        }
+      }
+      if (event === "drive") {
+        driveLoading = false;
+        driveStatus = result.error || "";
+        if (result.entries) {
+          driveEntries = result.entries;
+        }
+        if (app.page === "catalog") document.querySelector("#drive-results").innerHTML = driveCatalog();
+        updateHotRanking();
+        return;
+      }
+      if (result.error) {
+        if (event === "apply" || event === "restore") {
+          app.pack = JSON.parse(native.active() || "null");
+          render();
+        }
+        notice("Thao tác chưa hoàn tất", result.error);
+        return;
+      }
+      if (event === "version") {
+        releaseUrl = result.url || "";
+        notice("Phiên bản ứng dụng", result.message, releaseUrl ? "release-download" : "");
+        return;
+      }
+      if (event === "bundle-selected") {
+        dialog.innerHTML = '<h2 id="dialog-title">Đặt tên AssetBundle</h2><p>' + escapeText(result.name) +
+          '</p><label class="pass-label" for="bundle-name">Tên hiển thị</label><input class="search" id="bundle-name" maxlength="80" value="' +
+          escapeText(result.name.replace(/\.assetbundle$/i, "").slice(0, 80)) + '">' +
+          '<div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Lưu", "save-bundle") + '</div>';
+        dialog.showModal();
+        dialog.querySelector("#bundle-name").select();
+        return;
+      }
+      if (event === "bundles") {
+        app.bundles = result.entries;
+        if (dialog.open) dialog.close();
+        app.feedback = result.message;
+        if (app.page === "import") render();
+        return;
+      }
+      if (event === "apply" || event === "restore") {
+        app.pack = result.pack || null;
+        if (event === "apply" && app.pack?.image) {
+          const id = app.pack.id || app.pack.name;
+          usedMaps = [{ id, name: app.pack.name }, ...usedMaps.filter(item => item.id !== id)].slice(0, 10);
+          localStorage.setItem("sence.usedMaps", JSON.stringify(usedMaps));
+        }
+        if (dialog.open) dialog.close();
+        go("home");
+        app.feedback = result.message || (event === "apply" ? "Đã ghi và xác minh tệp đích." : "Đã khôi phục tệp gốc.");
+        render();
+      }
+    };
+    nav.innerHTML = tabs.map(([page, label, glyph]) =>
+      '<button data-action="tab-' + page + '"><span>' + icon(glyph) + '</span><span>' + label + '</span></button>').join("");
+    render();
+    native.checkMemory();
+    refreshDrive();
+  </script>
+</body>
+</html>

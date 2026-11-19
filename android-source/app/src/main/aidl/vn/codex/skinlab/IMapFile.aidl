@@ -1,0 +1,11 @@
+package vn.codex.skinlab;
+
+import android.os.ParcelFileDescriptor;
+
+interface IMapFile {
+    ParcelFileDescriptor openOriginal() = 0;
+    boolean canWrite() = 1;
+    void replace(in ParcelFileDescriptor replacement) = 2;
+    String probe() = 3;
+    void destroy() = 16777114;
+}

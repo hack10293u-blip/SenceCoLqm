@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+def counterUrl = providers.gradleProperty('senceCounterUrl').orElse('').get().trim().replaceAll('/+$', '')
+if (counterUrl && !counterUrl.matches('https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._/-]+)?')) {
+    throw new GradleException('senceCounterUrl must be an HTTPS URL')
+}
+
+android {
+    namespace 'vn.codex.skinlab'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.tmod.kgvn'
+        minSdk 26
+        targetSdk 35
+        versionCode 29
+        versionName '1.6.3'
+        buildConfigField 'String', 'COUNTER_URL', '"' + counterUrl + '"'
+    }
+    buildFeatures { compose true; aidl true; buildConfig true }
+    composeOptions { kotlinCompilerExtensionVersion '1.5.14' }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = '17' }
+}
+
+dependencies {
+    implementation platform('androidx.compose:compose-bom:2024.06.00')
+    implementation 'androidx.activity:activity-compose:1.9.0'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'dev.rikka.shizuku:api:13.1.5'
+    implementation 'dev.rikka.shizuku:provider:13.1.5'
+    implementation 'com.github.MuntashirAkon:libadb-android:3.1.1'
+    implementation 'org.conscrypt:conscrypt-android:2.5.3'
+    implementation 'org.bouncycastle:bcprov-jdk15to18:1.81'
+}
