@@ -3,7 +3,11 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <queries><package android:name="moe.shizuku.privileged.api" /></queries>
+    <queries>
+        <package android:name="moe.shizuku.privileged.api" />
+        <package android:name="ru.zdevs.zarchiver" />
+        <package android:name="ru.zdevs.zarchiver.pro" />
+    </queries>
     <application android:label="SenceLab" android:icon="@mipmap/sencelab" android:theme="@style/Theme.SkinLab" android:allowBackup="false" android:usesCleartextTraffic="false">
         <provider android:name="rikka.shizuku.ShizukuProvider"
             android:authorities="${applicationId}.shizuku" android:multiprocess="false"

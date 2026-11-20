@@ -48,6 +48,7 @@ class SenceActivity : ComponentActivity() {
     private val adminState by lazy { getSharedPreferences("admin-session", MODE_PRIVATE) }
     private val bundleLabels by lazy { getSharedPreferences("bundle-labels", MODE_PRIVATE) }
     @Volatile private var selectedBundle: Uri? = null
+    @Volatile private var sessionSaf: Uri? = null
     private lateinit var view: WebView
     private lateinit var shell: FrameLayout
     @Volatile private var mapService: IMapFile? = null
@@ -120,10 +121,12 @@ class SenceActivity : ComponentActivity() {
                 "Tệp đã chọn không đúng đường dẫn map của Liên Quân."
             }
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            contentResolver.takePersistableUriPermission(uri, flags)
+            val persisted = runCatching { contentResolver.takePersistableUriPermission(uri, flags) }.isSuccess
+            if (!persisted) sessionSaf = uri
+            contentResolver.openFileDescriptor(uri, "rw")?.use { } ?: error("Ứng dụng chọn tệp chưa cấp quyền ghi. Hãy dùng trình chọn tệp Android hoặc cấp quyền thư mục bằng SAF V1.")
             check(state.edit().putString("target", uri.toString()).putString("saf2", uri.toString()).commit())
             runOnUiThread { checkPermissionState() }
-            JSONObject().put("message", "Đã lưu quyền SAF V2 cho đúng tệp map.")
+            JSONObject().put("message", if (persisted) "Đã lưu quyền SAF V2 cho đúng tệp map." else "Đã cấp quyền SAF V2 trong phiên này. Khi mở lại app có thể cần chọn lại tệp.")
         }
     }
 
@@ -220,10 +223,31 @@ class SenceActivity : ComponentActivity() {
     }
 
     inner class Bridge {
+        @JavascriptInterface fun chooseZarchiver() = runOnUiThread {
+            val packages = listOf("ru.zdevs.zarchiver", "ru.zdevs.zarchiver.pro")
+            val intent = packages.map { name ->
+                Intent(Intent.ACTION_GET_CONTENT).apply {
+                    setPackage(name)
+                    type = "*/*"
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                }
+            }.firstOrNull { it.resolveActivity(packageManager) != null }
+            if (intent == null) emit("zarchiver", JSONObject().put("error", "Chưa tìm thấy ZArchiver có chức năng chọn tệp trên máy. Hãy cài ZArchiver rồi thử lại."))
+            else {
+                state.edit().putString("selectedPermission", "SAF V2").apply()
+                val enabled = state.getStringSet("enabledMethods", emptySet()).orEmpty().toMutableSet().apply { add("SAF V2") }
+                state.edit().putStringSet("enabledMethods", enabled).apply()
+                runCatching { chooseTarget.launch(intent) }.onFailure {
+                    emit("zarchiver", JSONObject().put("error", "Không mở được trình chọn tệp ZArchiver."))
+                }
+            }
+        }
         @JavascriptInterface fun backHint() = runOnUiThread {
             android.widget.Toast.makeText(this@SenceActivity, "Bấm Trở về lần nữa để thoát", android.widget.Toast.LENGTH_SHORT).show()
         }
         @JavascriptInterface fun resetPermissions() = task("permissions-reset") {
+            sessionSaf = null
             check(state.edit().putBoolean("permissionsReset", true).putStringSet("enabledMethods", emptySet())
                 .remove("target").remove("saf1").remove("saf2").remove("fixTree").remove("selectedPermission").commit())
             contentResolver.persistedUriPermissions.forEach { grant ->
@@ -504,8 +528,8 @@ class SenceActivity : ComponentActivity() {
     }
 
     private fun safPermission(key: String): Uri? = state.getString(key, null)?.let(Uri::parse)?.takeIf { uri ->
-        contentResolver.persistedUriPermissions.any { (it.uri == uri || (DocumentsContract.isTreeUri(uri) &&
-            it.uri == DocumentsContract.buildTreeDocumentUri(uri.authority!!, DocumentsContract.getTreeDocumentId(uri)))) && it.isReadPermission && it.isWritePermission } &&
+        (sessionSaf == uri || contentResolver.persistedUriPermissions.any { (it.uri == uri || (DocumentsContract.isTreeUri(uri) &&
+            it.uri == DocumentsContract.buildTreeDocumentUri(uri.authority!!, DocumentsContract.getTreeDocumentId(uri)))) && it.isReadPermission && it.isWritePermission }) &&
             runCatching { contentResolver.openFileDescriptor(uri, "rw")?.use { true } == true }.getOrDefault(false)
     }
 

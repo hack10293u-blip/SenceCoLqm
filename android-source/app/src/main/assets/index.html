@@ -298,6 +298,9 @@
       .status-dot.red { animation-duration: 3.5s; }
       @keyframes status-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .58; transform: scale(.85); } }
     }
+    .support-row button { flex: 0 0 100px; width: 100px; min-height: 42px; white-space: nowrap; }
+    .support-row > div { min-width: 0; overflow-wrap: anywhere; }
+    main[data-page="access"] > *, main[data-page="permissions"] > *, .memory-method { animation: none !important; }
 </style>
 </head>
 <body>
@@ -640,6 +643,7 @@
         dialog.innerHTML = '<div class="memory-help-heading">' + symbol("alert", color) +
           '<h2 id="dialog-title">' + escapeText(name) + '</h2></div><p class="memory-help-copy">' +
           escapeText(help) + '</p>' + button("Đã hiểu", "close", "primary full");
+        if (name === "SAF V2") dialog.insertAdjacentHTML("beforeend", button("Chọn tệp bằng ZArchiver", "saf-zarchiver", "secondary full"));
         dialog.showModal();
         return;
       }
@@ -654,6 +658,11 @@
       }
 
       switch (action) {
+        case "saf-zarchiver":
+          app.mode = "SAF V2";
+          awaitingMemory = true;
+          native.chooseZarchiver();
+          break;
         case "reset-app": {
           native.beginReset();
           const readyAt = Date.now() + 5000;
@@ -871,6 +880,7 @@
       if (!dialog.open) dialog.showModal();
     }
     window.senceResult = (event, result) => {
+      if (event === "zarchiver") { awaitingMemory = false; notice("ZArchiver", result.error || result.message); return; }
       if (event === "permissions-reset") {
         notice("Đặt lại quyền", result.message || result.error);
         native.checkMemory();
