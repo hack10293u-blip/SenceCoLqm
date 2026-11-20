@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 1.6.5</title>
+  <title>SenceLab 1.6.6</title>
   <style>
     :root {
       color-scheme: dark;
@@ -418,11 +418,11 @@
             '" data-action="delete-bundle-' + index + '">Xóa</button></li>').join("") + '</ul>'
           : '<p class="muted">Chưa nhập tệp AssetBundle.</p>'),
       permissions: () => title("Quyền", "Thiết lập quyền trước khi áp dụng map.") +
-        button("Fix Data", "fix-data", "secondary full") +
         row("Trạng thái quyền", memoryStatus, "link", "mint") +
         row("Cấp quyền bộ nhớ", "Chọn hoặc đổi phương thức truy cập", "wrench", "lilac", "access") +
         row("Kiểm tra quyền", "Kiểm tra quyền ghi vào tệp đích", "info", "mint", "permission-check") +
         row("Kiểm tra tệp đang dùng", "Đối chiếu nội dung bundle trên máy", "file", "lilac", "verify-map") +
+        row("Fix Data", "Tải lại dữ liệu Extra và giữ bản gốc", "wrench", "pink", "fix-data") +
         row("Hướng dẫn cấp quyền", "Xem các bước thiết lập", "info", "pink", "guide") +
         (app.mode ? button("Đặt lại lựa chọn", "permission-reset", "secondary full") : ""),
       access: () => title("Cấp quyền bộ nhớ", "Chọn cách cấp quyền để SenceLab ghi file vào trò chơi.") +
@@ -435,11 +435,11 @@
         button("Xong", "back", "primary full"),
       settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 1.6.5</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 1.6.6</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Cấp quyền bộ nhớ", memoryStatus, "link", "mint", "access")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v1.6.5 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v1.6.6 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Dọn ảnh và tệp tạm", "Xóa Cache", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -486,7 +486,7 @@
 
     function homePermissions() {
       return row("Cấp quyền bộ nhớ", memoryDetails?.ready ? "Có quyền ghi tệp map" : "Xem trạng thái quyền", "link", "lilac", "access") +
-        button("Fix", "fix-data", "secondary full") +
+        (memoryDetails && !memoryDetails.ready ? button("Fix", "fix-data", "secondary restore-button full") : "") +
         permissionDetails();
     }
 
@@ -768,6 +768,22 @@
       if (!dialog.open) dialog.showModal();
     }
     window.senceResult = (event, result) => {
+      if (event === "file-progress") {
+        if (!dialog.open || !dialog.querySelector('progress') && !dialog.textContent.includes("Đang tải và giải nén")) return;
+        let meter = dialog.querySelector("#file-download-progress");
+        if (!meter) {
+          meter = document.createElement("div");
+          meter.id = "file-download-progress";
+          meter.setAttribute("role", "status");
+          meter.innerHTML = '<p></p><progress max="100" style="width:100%"></progress>';
+          dialog.append(meter);
+        }
+        const bar = meter.querySelector("progress");
+        if (result.percent >= 0) bar.value = result.percent;
+        else bar.removeAttribute("value");
+        meter.querySelector("p").textContent = result.percent >= 0 ? "Đang tải " + result.percent + "%" : "Đã tải " + (result.bytes / 1048576).toFixed(1) + " MB";
+        return;
+      }
       if (event === "fix-data") {
         notice("Fix Data", result.message || result.error || "Không sửa được dữ liệu.");
         native.checkMemory();
@@ -787,7 +803,10 @@
       if (event === "adb") {
         const status = dialog.querySelector("#adb-status");
         if (dialog.open && status) status.textContent = result.message;
-        if (result.message.includes("đã kết nối")) native.checkMemory();
+        if (result.message.includes("đã kết nối")) {
+          if (dialog.open && status) dialog.close();
+          native.checkMemory();
+        }
         return;
       }
       if (event === "permission") {
@@ -797,6 +816,7 @@
           delete dialog.dataset.awaiting;
           dialog.innerHTML = '<h2 id="dialog-title">Kiểm tra quyền</h2>' +
             (result.error ? '<p>' + escapeText(result.error) + '</p>' : permissionDetails()) +
+            (result.ready ? "" : '<p>Chưa có quyền ghi. Bạn có thể thử Fix Data sau khi đóng trò chơi.</p>' + button("Fix Data", "fix-data", "secondary restore-button full")) +
             button("Đóng", "close", "primary full");
         }
         const home = document.querySelector("#home-permissions");
@@ -838,7 +858,10 @@
           app.pack = JSON.parse(native.active() || "null");
           render();
         }
-        notice("Thao tác chưa hoàn tất", result.error);
+        if ((event === "apply" || event === "restore") && /quyền ghi|chưa có quyền/i.test(result.error)) {
+          notice("Chưa có quyền ghi", result.error + " Bạn có thể thử Fix Data sau khi đóng trò chơi.");
+          dialog.insertAdjacentHTML("beforeend", button("Fix Data", "fix-data", "secondary restore-button full"));
+        } else notice("Thao tác chưa hoàn tất", result.error);
         return;
       }
       if (event === "version") {

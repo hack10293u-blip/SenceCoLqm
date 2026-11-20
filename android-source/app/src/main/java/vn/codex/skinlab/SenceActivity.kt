@@ -486,7 +486,37 @@ class SenceActivity : ComponentActivity() {
         connection.readTimeout = 15000
         try {
             check(connection.responseCode == 200) { "Drive trả HTTP ${connection.responseCode}." }
-            return connection.inputStream.use(read)
+            val fileDownload = connection.url.host == "drive.usercontent.google.com"
+            val length = connection.contentLengthLong
+            var downloaded = 0L
+            var lastUpdate = 0L
+            fun progress(done: Boolean = false) {
+                if (!fileDownload) return
+                val now = android.os.SystemClock.elapsedRealtime()
+                if (!done && now - lastUpdate < 150) return
+                lastUpdate = now
+                val data = JSONObject().put("bytes", downloaded).put("total", length)
+                    .put("percent", if (done) 100 else if (length > 0) (downloaded * 100 / length).coerceAtMost(99) else -1)
+                runOnUiThread { emit("file-progress", data) }
+            }
+            progress()
+            val result = connection.inputStream.use { source ->
+                val tracked = object : java.io.FilterInputStream(source) {
+                    override fun read(): Int {
+                        val value = source.read()
+                        if (value >= 0) { downloaded++; progress() }
+                        return value
+                    }
+                    override fun read(buffer: ByteArray, offset: Int, count: Int): Int {
+                        val size = source.read(buffer, offset, count)
+                        if (size > 0) { downloaded += size; progress() }
+                        return size
+                    }
+                }
+                read(tracked)
+            }
+            progress(true)
+            return result
         } finally {
             connection.disconnect()
         }
