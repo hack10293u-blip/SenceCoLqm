@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 1.6.6</title>
+  <title>SenceLab 2.0.0</title>
   <style>
     :root {
       color-scheme: dark;
@@ -121,11 +121,11 @@
         radial-gradient(ellipse at 100% 100%, #edf7d5, transparent 60%),
         linear-gradient(160deg, #ffecdf, #eee5ff);
     }
-    [data-theme="light"] .primary { background: #dbf575; color: #222714; }
+    [data-theme="light"] .primary { background: #7860b5; color: #ffffff; }
     [data-theme="light"] nav { background: #fffcff; border-color: #e2d6eb; }
     [data-theme="light"] nav button { color: #62546c; }
-    [data-theme="light"] nav button[aria-current="page"] { color: #252c15; }
-    [data-theme="light"] nav button[aria-current="page"] span:first-child { color: #222714; background: #dbf575; }
+    [data-theme="light"] nav button[aria-current="page"] { color: #5c448e; }
+    [data-theme="light"] nav button[aria-current="page"] span:first-child { color: #ffffff; background: #7860b5; }
     [data-theme="light"] .app-profile::before { background: linear-gradient(100deg, #dbd2ff, #f9dcea); }
     .feedback { color: var(--mint); margin-top: 12px; }
     .app-profile, .settings-group { border: 1px solid var(--border); border-radius: 22px; background: var(--panel); margin-bottom: 13px; }
@@ -258,7 +258,16 @@
     }
     header > .brand-mark { overflow: hidden; background: #000; }
     .brand-mark img { display: block; width: 86%; height: 86%; min-width: 0; min-height: 0; object-fit: cover; object-position: 50% 46%; }
-  </style>
+      @media (prefers-reduced-motion: no-preference) {
+      main:not([data-page="settings"]) > * { animation: content-enter 180ms ease-out both; }
+      main:not([data-page="settings"]) > :nth-child(2) { animation-delay: 20ms; }
+      main:not([data-page="settings"]) > :nth-child(3) { animation-delay: 35ms; }
+      button { transition: transform 120ms ease-out, background-color 160ms ease, color 160ms ease, border-color 160ms ease; }
+      button:active { transform: scale(.98); }
+      dialog[open] { animation: dialog-enter 180ms ease-out; }
+    }
+    progress { accent-color: var(--mint); border-radius: 8px; height: 8px; }
+</style>
 </head>
 <body>
   <div class="app">
@@ -305,6 +314,7 @@
     let applying = false;
     let memoryStatus = "Đang kiểm tra quyền bộ nhớ…";
     let memoryDetails = null;
+    let historyCollapsed = false;
     try { usedMaps = JSON.parse(localStorage.getItem("sence.usedMaps") || "[]"); } catch {}
     const app = {
       page: "home", origins: {}, mode: "", pack: null, bundles: [], pending: null,
@@ -375,7 +385,7 @@
     function hotRanking() {
       if (!hotPacks.length) return '<p class="muted">' +
         (driveLoading ? "Đang tải bảng xếp hạng…" : "Chưa có dữ liệu lượt tải.") + '</p>';
-      return '<div class="hot-list">' + hotPacks.map((pack, index) =>
+      return '<div class="pack-grid">' + hotPacks.map((pack, index) =>
         '<button class="card pack-tile" data-action="hot-pack-' + index + '"><img src="' +
         escapeText(pack.image) + '" alt="" loading="lazy" decoding="async"><strong>' +
         escapeText(pack.name) + '</strong><small>' + downloadCount.format(pack.downloads) +
@@ -404,8 +414,8 @@
         hotRanking() + '</div></section>',
       catalog: () => title("Kho Map", "Chọn map để xem ảnh và áp dụng.") +
         '<h2>Lịch sử dùng</h2>' + (usedMaps.length ? '<ul class="import-history">' +
-          usedMaps.slice(0, 10).map(map => '<li class="card">' + escapeText(map.name) + '</li>').join("") +
-          '</ul>' : '<p class="muted">Chưa áp dụng map nào.</p>') +
+          usedMaps.slice(0, historyCollapsed ? 1 : 10).map(map => '<li class="card">' + escapeText(map.name) + '</li>').join("") +
+          '</ul>' + (usedMaps.length >= 3 ? button(historyCollapsed ? "Xem thêm" : "Thu gọn", "history-toggle", "secondary full") : "") : '<p class="muted">Chưa áp dụng map nào.</p>') +
         '<input class="search" id="search" type="search" aria-label="Tìm tên map" placeholder="Tìm tên map" value="' + escapeText(app.query) + '">' +
         '<div id="drive-results">' + driveCatalog() + '</div>',
       import: () => title("Nhập AssetBundle", "Chọn tệp .assetbundle và đặt tên để lưu vào danh sách.") +
@@ -422,7 +432,7 @@
         row("Cấp quyền bộ nhớ", "Chọn hoặc đổi phương thức truy cập", "wrench", "lilac", "access") +
         row("Kiểm tra quyền", "Kiểm tra quyền ghi vào tệp đích", "info", "mint", "permission-check") +
         row("Kiểm tra tệp đang dùng", "Đối chiếu nội dung bundle trên máy", "file", "lilac", "verify-map") +
-        row("Fix Data", "Tải lại dữ liệu Extra và giữ bản gốc", "wrench", "pink", "fix-data") +
+        row("Fix Data", "Bấm vào đây khi đã kết nối nhưng chưa có quyền ghi!", "wrench", "pink", "fix-data") +
         row("Hướng dẫn cấp quyền", "Xem các bước thiết lập", "info", "pink", "guide") +
         (app.mode ? button("Đặt lại lựa chọn", "permission-reset", "secondary full") : ""),
       access: () => title("Cấp quyền bộ nhớ", "Chọn cách cấp quyền để SenceLab ghi file vào trò chơi.") +
@@ -435,11 +445,11 @@
         button("Xong", "back", "primary full"),
       settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 1.6.6</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.0.0</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Cấp quyền bộ nhớ", memoryStatus, "link", "mint", "access")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v1.6.6 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v2.0.0 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Dọn ảnh và tệp tạm", "Xóa Cache", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -486,7 +496,7 @@
 
     function homePermissions() {
       return row("Cấp quyền bộ nhớ", memoryDetails?.ready ? "Có quyền ghi tệp map" : "Xem trạng thái quyền", "link", "lilac", "access") +
-        (memoryDetails && !memoryDetails.ready ? button("Fix", "fix-data", "secondary restore-button full") : "") +
+        (memoryDetails?.canFix ? button("Fix", "fix-data", "secondary restore-button full") : "") +
         permissionDetails();
     }
 
@@ -597,8 +607,9 @@
       }
 
       switch (action) {
+        case "history-toggle": historyCollapsed = !historyCollapsed; render(); break;
         case "fix-data":
-          notice("Fix Data", "Đóng trò chơi trước khi tiếp tục. App tải extra.zip, giữ dữ liệu gốc tại Extra1 rồi thay thư mục Extra. Cần Shizuku có quyền thao tác thư mục.", "fix-data-confirm");
+          notice("Đã kết nối nhưng chưa có quyền ghi?", "Fix Data thử tạo lại dữ liệu Extra để xử lý lỗi chưa ghi được tệp sau khi kết nối. Hãy đóng trò chơi trước. App tải extra.zip, giữ dữ liệu cũ tại Extra1 rồi thay thư mục Extra. Thao tác hiện dùng Shizuku và cần quyền sửa thư mục. Nếu Android chặn thao tác này, app sẽ báo lỗi.", "fix-data-confirm");
           break;
         case "fix-data-confirm":
           notice("Fix Data", "Đang tải và giải nén dữ liệu. Vui lòng chờ…");
@@ -816,7 +827,7 @@
           delete dialog.dataset.awaiting;
           dialog.innerHTML = '<h2 id="dialog-title">Kiểm tra quyền</h2>' +
             (result.error ? '<p>' + escapeText(result.error) + '</p>' : permissionDetails()) +
-            (result.ready ? "" : '<p>Chưa có quyền ghi. Bạn có thể thử Fix Data sau khi đóng trò chơi.</p>' + button("Fix Data", "fix-data", "secondary restore-button full")) +
+            (result.canFix ? '<p>Đã kết nối nhưng chưa có quyền ghi. Bạn có thể thử Fix Data sau khi đóng trò chơi.</p>' + button("Fix Data", "fix-data", "secondary restore-button full") : "") +
             button("Đóng", "close", "primary full");
         }
         const home = document.querySelector("#home-permissions");
@@ -858,7 +869,11 @@
           app.pack = JSON.parse(native.active() || "null");
           render();
         }
-        if ((event === "apply" || event === "restore") && /quyền ghi|chưa có quyền/i.test(result.error)) {
+        if (event === "apply" && result.permissionAction) {
+          notice("Quyền ghi tệp", result.error);
+          dialog.insertAdjacentHTML("beforeend", button(result.permissionAction === "access" ? "Cấp quyền bộ nhớ" : "Fix Data", result.permissionAction, "secondary full"));
+          native.checkMemory();
+        } else if ((event === "restore") && memoryDetails?.canFix && /quyền ghi|chưa có quyền/i.test(result.error)) {
           notice("Chưa có quyền ghi", result.error + " Bạn có thể thử Fix Data sau khi đóng trò chơi.");
           dialog.insertAdjacentHTML("beforeend", button("Fix Data", "fix-data", "secondary restore-button full"));
         } else notice("Thao tác chưa hoàn tất", result.error);

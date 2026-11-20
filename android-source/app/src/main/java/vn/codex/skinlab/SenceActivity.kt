@@ -236,8 +236,17 @@ class SenceActivity : ComponentActivity() {
         }
 
         @JavascriptInterface fun applyMap(data: String) = task("apply") {
-            val target = writableTarget()
-            require(target != null) { "Chưa có quyền ghi. Mở Cấp quyền bộ nhớ để thiết lập ADB WiFi, Shizuku hoặc SAF." }
+            val shizukuConnected = shizukuConnected()
+            val adbConnected = adbStarted && adbWifi.isConnected()
+            if (!shizukuConnected && !adbConnected) return@task JSONObject()
+                .put("error", "Hãy kết nối Shizuku hoặc ADB WiFi trong Cấp quyền bộ nhớ trước.")
+                .put("permissionAction", "access")
+            val target = when {
+                shizukuConnected && shizukuWritable() -> shizukuTarget
+                adbConnected && adbWifi.canWrite() -> adbTarget
+                else -> return@task JSONObject().put("error", "Đã kết nối nhưng chưa có quyền ghi. Đóng trò chơi rồi thử Fix Data.")
+                    .put("permissionAction", "fix-data")
+            }
             applyPack(target, JSONObject(data))
         }
 
@@ -425,6 +434,11 @@ class SenceActivity : ComponentActivity() {
             runCatching { DocumentsContract.getDocumentId(uri) == targetDocument }.getOrDefault(false)
     }
 
+    private fun shizukuConnected(): Boolean = runCatching {
+        Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED &&
+            mapService?.asBinder()?.isBinderAlive == true
+    }.getOrDefault(false)
+
     private fun checkPermissionState() = task("permission") {
         val shizukuRunning = Shizuku.pingBinder()
         val shizukuGranted = shizukuRunning && runCatching {
@@ -451,6 +465,7 @@ class SenceActivity : ComponentActivity() {
             .put("shizuku", shizukuLabel).put("adb", adbLabel)
             .put("saf", if (safReady) "Sẵn sàng" else "Chưa có quyền ghi")
             .put("ready", shizukuReady || adbReady || safReady)
+            .put("canFix", (shizukuConnected() || (adbStarted && adbWifi.isConnected())) && !shizukuReady && !adbReady)
     }
 
     private data class DriveItem(val name: String, val id: String, val folder: Boolean)
