@@ -47,6 +47,10 @@ class SenceActivity : ComponentActivity() {
     private val counterOutbox by lazy { getSharedPreferences("download-outbox", MODE_PRIVATE) }
     private val adminState by lazy { getSharedPreferences("admin-session", MODE_PRIVATE) }
     private val bundleLabels by lazy { getSharedPreferences("bundle-labels", MODE_PRIVATE) }
+    private val bundleTypes by lazy { getSharedPreferences("bundle-types", MODE_PRIVATE) }
+    private val resourcePaths by lazy { getSharedPreferences("resource-paths", MODE_PRIVATE) }
+    @Volatile private var importCategory = "Map cờ"
+    private var pendingPathName = ""
     @Volatile private var selectedBundle: Uri? = null
     @Volatile private var sessionSaf: Uri? = null
     private lateinit var view: WebView
@@ -102,7 +106,7 @@ class SenceActivity : ComponentActivity() {
         if (uri == null) return@registerForActivityResult
         task("bundle-selected") {
             val name = displayName(uri)
-            require(name.endsWith(".assetbundle", true)) { "Chỉ hỗ trợ tệp .assetbundle." }
+            require(name.endsWith(if (importCategory == "Map cờ") ".assetbundle" else ".zip", true)) { "Loại tệp này cần ${if (importCategory == "Map cờ") ".assetbundle" else ".zip"}." }
             selectedBundle = uri
             JSONObject().put("name", name)
         }
@@ -162,6 +166,21 @@ class SenceActivity : ComponentActivity() {
             if (id == "primary:Android/data/com.garena.game.kgvn/files") state.edit().putString("fixTree", tree.toString()).apply()
             runOnUiThread { checkPermissionState() }
             JSONObject().put("message", "Đã cấp quyền SAF V1 cho tệp map.")
+        }
+    }
+
+    private val chooseResourceTree = registerForActivityResult(object : ActivityResultContracts.OpenDocumentTree() {
+        override fun createIntent(context: android.content.Context, input: Uri?): Intent {
+            val base = super.createIntent(context, input)
+            val packaged = Intent(base).setPackage("ru.zdevs.zarchiver")
+            return if (packaged.resolveActivity(context.packageManager) != null) packaged else base
+        }
+    }) { tree ->
+        if (tree != null) task("resource-paths") {
+            contentResolver.takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            val id = UUID.randomUUID().toString()
+            check(resourcePaths.edit().putString(id, JSONObject().put("name", pendingPathName).put("uri", tree.toString()).toString()).commit())
+            JSONObject().put("paths", resourcePathList()).put("selected", id)
         }
     }
 
@@ -229,6 +248,41 @@ class SenceActivity : ComponentActivity() {
     }
 
     inner class Bridge {
+        @JavascriptInterface fun chooseImport(category: String) = runOnUiThread {
+            require(category in listOf("Map 5v5", "Map cờ", "Skin", "Res"))
+            importCategory = category
+            selectedBundle = null
+            chooseBundle.launch(arrayOf("*/*"))
+        }
+        @JavascriptInterface fun resourceState() = task("resource-state") {
+            JSONObject().put("paths", resourcePathList()).put("active", state.getString("activeResource", null)?.let(::JSONObject))
+        }
+        @JavascriptInterface fun chooseResourcePath(name: String) = runOnUiThread {
+            pendingPathName = name.trim().take(60).ifEmpty { "Resources" }
+            chooseResourceTree.launch(null)
+        }
+        @JavascriptInterface fun applyImported(id: String, route: String) = task("import-apply") {
+            val category = bundleTypes.getString(id, "Map cờ")
+            require(bundleLabels.contains(id) && bundleFile(id).isFile) { "Tệp đã nhập không còn tồn tại." }
+            if (category == "Map cờ") {
+                val target = writableTarget() ?: error("Hãy cấp quyền bộ nhớ trước.")
+                return@task applyPack(target, JSONObject().put("localId", id).put("name", bundleLabels.getString(id, id)))
+                    .put("category", category)
+            }
+            require(category in listOf("Map 5v5", "Skin", "Res"))
+            installResourceBundle(id, route, category == "Res")
+            val active = JSONObject().put("localId", id).put("name", bundleLabels.getString(id, id)).put("route", route)
+            if (category == "Res") check(state.edit().putString("activeResource", active.toString()).commit())
+            JSONObject().put("category", category).put("active", active).put("message", "Đã ghi và xác minh Resources.")
+        }
+        @JavascriptInterface fun deleteResources(route: String) = task("resource-delete") {
+            val store = resourceStore(route)
+            val count = if (store != null) ResourceInstaller.deleteBackups(store) else {
+                check(shizukuConnected()) { "Hãy cấp quyền bộ nhớ trước." }
+                checkNotNull(mapService).deleteResourceBackups()
+            }
+            JSONObject().put("message", "Đã xóa $count thư mục sao lưu Resources đánh số.")
+        }
         @JavascriptInterface fun chooseZarchiver() = runOnUiThread {
             val packages = listOf("ru.zdevs.zarchiver", "ru.zdevs.zarchiver.pro")
             val intent = packages.map { name ->
@@ -320,8 +374,9 @@ class SenceActivity : ComponentActivity() {
             val id = UUID.randomUUID().toString()
             val destination = bundleFile(id)
             try {
-                read(uri).use { input -> destination.outputStream().use { copyLimited(input, it) } }
-                validateBundle(destination)
+                read(uri).use { input -> destination.outputStream().use { copyLimited(input, it, if (importCategory == "Map cờ") archiveLimit else 4L * 1024 * 1024 * 1024) } }
+                if (importCategory == "Map cờ") validateBundle(destination) else java.util.zip.ZipFile(destination).use { require(it.size() > 0) { "ZIP trống." } }
+                check(bundleTypes.edit().putString(id, importCategory).commit())
                 check(bundleLabels.edit().putString(id, label).commit()) { "Không lưu được tên tệp." }
             } catch (failure: Exception) {
                 destination.delete()
@@ -335,6 +390,7 @@ class SenceActivity : ComponentActivity() {
             val file = bundleFile(id)
             check(!file.exists() || file.delete()) { "Không xóa được tệp đã nhập." }
             bundleLabels.edit().remove(id).apply()
+            bundleTypes.edit().remove(id).apply()
             JSONObject().put("entries", importedBundles()).put("message", "Đã xóa tệp đã nhập.")
         }
 
@@ -710,8 +766,41 @@ class SenceActivity : ComponentActivity() {
             val file = bundleFile(id)
             if (file.isFile) Triple(id, name, file.lastModified()) else null
         }.sortedByDescending { it.third }.forEach { (id, name) ->
-            put(JSONObject().put("localId", id).put("name", name))
+            put(JSONObject().put("localId", id).put("name", name).put("category", bundleTypes.getString(id, "Map cờ")).put("size", bundleFile(id).length()))
         }
+    }
+
+    private fun resourcePathList(): JSONArray = JSONArray().apply {
+        val defaultReady = (permissionEnabled("LDPlayer trực tiếp") && Build.VERSION.SDK_INT <= 28 && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) || shizukuConnected() || (adbStarted && adbWifi.isConnected()) || state.getString("fixTree", null)?.let { path -> contentResolver.persistedUriPermissions.any { it.uri.toString() == path && it.isWritePermission && it.isReadPermission } } == true
+        put(JSONObject().put("id", "default").put("name", "Mặc định").put("path", GAME_FILES).put("ready", defaultReady))
+        resourcePaths.all.forEach { (id, value) -> runCatching {
+            val item = JSONObject(value as String)
+            val ready = contentResolver.persistedUriPermissions.any { it.uri.toString() == item.getString("uri") && it.isReadPermission && it.isWritePermission }
+            put(JSONObject().put("id", id).put("name", item.getString("name")).put("path", item.getString("uri")).put("ready", ready))
+        } }
+    }
+
+    private fun resourceStore(route: String): ResourceStore? {
+        if (route != "default") {
+            val info = resourcePaths.getString(route, null)?.let(::JSONObject) ?: error("Hãy chọn đường dẫn đã cấp quyền.")
+            val tree = Uri.parse(info.getString("uri"))
+            require(contentResolver.persistedUriPermissions.any { it.uri == tree && it.isWritePermission && it.isReadPermission }) { "Đường dẫn chưa có quyền ghi. Hãy chọn lại thư mục." }
+            return SafResources(contentResolver, tree)
+        }
+        if (permissionEnabled("LDPlayer trực tiếp") && Build.VERSION.SDK_INT <= 28 && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) return DiskResources()
+        if (shizukuConnected()) return null
+        if (adbStarted && adbWifi.isConnected()) return adbWifi.resourceStore()
+        val tree = state.getString("fixTree", null)?.let(Uri::parse)
+        if (tree != null && contentResolver.persistedUriPermissions.any { it.uri == tree && it.isReadPermission && it.isWritePermission }) return SafResources(contentResolver, tree)
+        error("Hãy cấp quyền bộ nhớ. Với SAF, chọn thư mục files chứa Resources bằng nút Chọn Z/Chọn thư mục.")
+    }
+
+    private fun installResourceBundle(id: String, route: String, replace: Boolean) {
+        val file = bundleFile(id)
+        val store = resourceStore(route)
+        operationPhase("Đang giải nén và xác minh Resources…")
+        if (store != null) file.inputStream().use { ResourceInstaller.install(store, it, replace, ::operationPhase) }
+        else ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { checkNotNull(mapService).installResources(it, replace) }
     }
 
     private fun applyPack(uri: String, pack: JSONObject): JSONObject {

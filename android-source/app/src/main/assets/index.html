@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 2.0.8</title>
+  <title>SenceLab 2.1.0</title>
   <style>
     :root {
       color-scheme: dark;
@@ -301,6 +301,62 @@
     .support-row button { flex: 0 0 100px; width: 100px; min-height: 42px; white-space: nowrap; }
     .support-row > div { min-width: 0; overflow-wrap: anywhere; }
     main[data-page="access"] > *, main[data-page="permissions"] > *, .memory-method { animation: none !important; }
+    .imported-tile { overflow: hidden; min-width: 0; }
+    .imported-cover { aspect-ratio: 1; display: grid; place-items: center; background: color-mix(in srgb, var(--lilac) 14%, var(--panel)); color: var(--lilac); }
+    .imported-cover.mint { background: color-mix(in srgb, var(--mint) 13%, var(--panel)); color: var(--mint); }
+    .imported-cover.pink { background: color-mix(in srgb, var(--pink) 13%, var(--panel)); color: var(--pink); }
+    .imported-cover .icon { width: 48px; height: 48px; }
+    .imported-info { padding: 12px; }
+    .imported-info strong { display: block; overflow-wrap: anywhere; margin: 3px 0 12px; }
+    .imported-info small { color: var(--muted); }
+    .imported-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .imported-actions button { padding: 7px 10px; }
+    .import-types [data-action="demo-type-0"] { color: var(--lilac); background: color-mix(in srgb, var(--lilac) 17%, var(--panel)); border-color: color-mix(in srgb, var(--lilac) 40%, var(--border)); }
+    .import-types [data-action="demo-type-1"] { color: var(--mint); background: color-mix(in srgb, var(--mint) 17%, var(--panel)); border-color: color-mix(in srgb, var(--mint) 40%, var(--border)); }
+    .import-types [data-action="demo-type-2"] { color: var(--pink); background: color-mix(in srgb, var(--pink) 17%, var(--panel)); border-color: color-mix(in srgb, var(--pink) 40%, var(--border)); }
+    .import-types button { min-height: 54px; font-size: 15px; }
+    .resources-tools { display: flex; align-items: stretch; gap: 10px; margin-top: 14px; }
+    .resources-tools > .card { flex: 1; min-width: 0; margin: 0; }
+    .resources-trash { flex: 0 0 56px; border: 1px solid color-mix(in srgb, var(--pink) 35%, var(--border)); border-radius: 18px; background: color-mix(in srgb, var(--pink) 12%, var(--panel)); color: var(--pink); display: grid; place-items: center; }
+    .resources-trash .icon { width: 23px; height: 23px; }
+    .resource-import { color: var(--lilac); border-color: color-mix(in srgb, var(--lilac) 35%, var(--border)); background: color-mix(in srgb, var(--lilac) 10%, var(--panel)); }
+    .resource-file { overflow-wrap: anywhere; font-size: 13px; }
+    .resources-page { padding: 22px; margin-top: 20px; }
+    .resources-page-symbol { display: flex; justify-content: center; padding: 10px 0 18px; }
+    .resources-page-symbol .symbol { width: 70px; height: 70px; }
+    .resources-page-symbol .icon { width: 29px; height: 29px; }
+    .resource-selection { padding: 16px 0; overflow-wrap: anywhere; }
+    .resource-selection small { display: block; color: var(--muted); margin-bottom: 5px; }
+    .resources-title { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+    .resources-title h1 { flex: 1; min-width: 0; }
+    .resources-title .resources-trash { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 15px; }
+    .resources-status { display: flex; align-items: center; gap: 15px; padding: 23px; min-height: 125px; margin: 20px 0 16px; }
+    .resources-status > div { min-width: 0; }
+    .resources-status small { display: block; color: var(--muted); margin-bottom: 4px; }
+    .resources-status strong { display: block; font-size: 20px; }
+    .resources-status p { margin: 6px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+    .resource-demo-link { display: block; text-align: center; margin-top: 16px; color: var(--lilac); font-size: 13px; text-underline-offset: 3px; }
+    .resource-import-list li { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+    .resource-import-list li strong { display: block; overflow-wrap: anywhere; }
+    .resource-import-list li small { display: block; color: var(--muted); margin-top: 4px; }
+    .resources-status strong { overflow-wrap: anywhere; }
+    .resource-import-list li { flex-wrap: wrap; }
+    .resource-input-actions { display: flex; gap: 10px; margin-top: 16px; align-items: stretch; }
+    .resource-input-actions > button:first-child { flex: 0 0 95px; }
+    .resource-input-actions > button:last-child { flex: 1; min-width: 0; }
+    .resource-path-list { list-style: none; padding: 0; margin: 0; }
+    .resource-path-list li { padding: 13px; margin-bottom: 10px; overflow-wrap: anywhere; font-size: 13px; }
+    .resource-path-list small { display: block; color: var(--mint); margin-top: 5px; }
+    #demo-res-target { width: 100%; min-width: 0; }
+    .resource-input-actions { display: flex; align-items: stretch; gap: 8px; }
+    .resource-input-actions > button:first-child, .resource-input-actions > button:last-child { flex: 0 0 auto; min-width: 66px; padding-inline: 13px; }
+    .resource-path-select { flex: 1; min-width: 0; width: 0; min-height: 42px; border-radius: 99px; padding: 8px 12px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 700; text-overflow: ellipsis; }
+    .resource-selected-path { margin: 13px 0 22px; font-size: 13px; overflow-wrap: anywhere; }
+    .resource-selected-path strong, .resource-selected-path span { display: block; }
+    .resource-selected-path span { color: var(--muted); margin-top: 4px; }
+    .resource-input-actions > .secondary, .resource-input-actions > .resource-path-select { background: var(--lilac); color: var(--bg); border-color: transparent; box-shadow: inset 0 1px 0 var(--fx-sheen), 0 3px 12px var(--fx-glow); }
+    [data-theme="light"] .resource-input-actions > .secondary, [data-theme="light"] .resource-input-actions > .resource-path-select { background: #7860b5; color: #ffffff; }
+    .resource-path-select option { background: var(--panel); color: var(--text); }
 </style>
 </head>
 <body>
@@ -310,8 +366,10 @@
     <nav id="tabs" aria-label="Điều hướng chính"></nav>
   </div>
   <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
-  <script>
+  
+<script>
     const paths = {
+      trash: '<path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6m4-6v6"/>',
       bolt: '<path d="m13 2-8 12h6l-1 8 9-12h-6z"/>',
       home: '<path d="m3 11 9-8 9 8M5 9v11h5v-6h4v6h5V9"/>',
       grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -348,6 +406,13 @@
     let applying = false;
     let memoryStatus = "Đang kiểm tra quyền bộ nhớ…";
     let memoryDetails = null;
+    let demoCategory = "Map cờ";
+    let demoResourceFiles = [];
+    let demoResourcePaths = [];
+    let activeDemoResourcePath = null;
+    let pendingImportTarget = null;
+    let selectedDemoResourcePath = null;
+    let activeDemoResource = null;
     let lastHomeBack = 0;
     let awaitingMemory = false;
     let resetTimer = null;
@@ -361,6 +426,7 @@
     };
     try { app.dark = localStorage.getItem("skinlab.theme") === "dark"; app.bundles = JSON.parse(native.listBundles()); app.pack = JSON.parse(native.active() || "null"); } catch {}
     app.admin = native.isAdmin();
+    demoResourceFiles = app.bundles.filter(x => x.category === "Res");
     let hotPacks = [];
     let onlineDownloads = null;
     const downloadCount = new Intl.NumberFormat("vi-VN");
@@ -373,7 +439,7 @@
     ];
     const tabs = [
       ["home", "Trang chủ", "home"], ["catalog", "Kho Map", "grid"],
-      ["import", "Nhập AssetBundle", "file"], ["permissions", "Quyền", "wrench"],
+      ["import", "Nhập", "file"], ["permissions", "Quyền", "wrench"],
       ["settings", "Cài đặt chung", "settings"]
     ];
     const memoryMethods = [
@@ -461,15 +527,17 @@
           '</ul>' + (usedMaps.length >= 3 ? button(historyCollapsed ? "Xem thêm" : "Thu gọn", "history-toggle", "secondary full") : "") : '<p class="muted">Chưa áp dụng map nào.</p>') +
         '<input class="search" id="search" type="search" aria-label="Tìm tên map" placeholder="Tìm tên map" value="' + escapeText(app.query) + '">' +
         '<div id="drive-results">' + driveCatalog() + '</div>',
-      import: () => title("Nhập AssetBundle", "Chọn tệp .assetbundle và đặt tên để lưu vào danh sách.") +
-        '<section class="upload card">' + symbol("file", "mint") +
-        button("Chọn tệp .assetbundle", "pick", "primary full") +
-        '</section><h2>Đã nhập</h2>' + (app.bundles.length
-          ? '<ul class="import-history">' + app.bundles.map((file, index) =>
-            '<li class="card"><span>' + escapeText(file.name) + '</span>' + button("Áp dụng", "local-apply-" + index) +
-            '<button class="secondary" aria-label="Xóa ' + escapeText(file.name) +
-            '" data-action="delete-bundle-' + index + '">Xóa</button></li>').join("") + '</ul>'
-          : '<p class="muted">Chưa nhập tệp AssetBundle.</p>'),
+      import: () => title("Nhập", "Nhập tệp Map 5v5, Map cờ hoặc Skin.") +
+        '<section class="upload card">' + symbol("file", "mint") + button("Nhập tệp", "pick", "primary full") +
+        '</section>' + row("Fix Resources", "Nhập res và dọn tài nguyên cũ", "wrench", "lilac", "demo-resources") + '<h2>Đã nhập</h2>' + (app.bundles.filter(x => x.category !== "Res").length ? '<div class="pack-grid">' + app.bundles.filter(x => x.category !== "Res").map((file,index) =>
+        '<article class="card imported-tile"><div class="imported-cover ' + (file.category === "Skin" ? 'pink' : file.category === "Map cờ" ? 'mint' : 'lilac') + '">' + icon(file.category === "Skin" ? "crown" : "file") + '</div><div class="imported-info"><small>' + escapeText(file.category || "Map cờ") + '</small><strong>' + escapeText(file.name) + '</strong><div class="imported-actions">' + button("Áp dụng", "demo-apply-" + index) + button("Xóa", "demo-delete-" + index, "secondary") + '</div></div></article>').join("") + '</div>' : '<p class="muted">Chưa nhập tệp nào.</p>'),
+      resources: () => '<div class="resources-title"><h1>Fix Resources</h1><button class="resources-trash" data-action="demo-delete-res" aria-label="Xóa res cũ" title="Xóa res cũ">' + icon("trash") + '</button></div><p class="intro">Nhập res rồi chọn tệp muốn áp dụng.</p>' +
+        '<section class="card resources-status" role="status"><span class="status-dot ' + (!selectedDemoResourcePath?.ready ? 'red' : (activeDemoResource && activeDemoResourcePath === selectedDemoResourcePath) ? 'green' : 'yellow') + '"></span><div><small>Trạng thái tài nguyên</small><strong>' + (!selectedDemoResourcePath?.ready ? 'Chưa có quyền bộ nhớ' : (activeDemoResource && activeDemoResourcePath === selectedDemoResourcePath) ? 'Đang dùng ' + escapeText(activeDemoResource.name) : 'Chưa fix') + '</strong></div></section>' +
+        '<div class="resource-input-actions">' + button("Nhập", "demo-import-res", "primary") +
+        '<select id="demo-resource-path-select" class="resource-path-select" aria-label="Đường dẫn đã thêm"><option value=""' + (!selectedDemoResourcePath?.ready ? ' selected' : '') + ' disabled>Đường dẫn đã thêm</option>' + demoResourcePaths.map((path,index) => '<option value="' + index + '"' + (selectedDemoResourcePath === path ? ' selected' : '') + '>' + escapeText(path.name) + '</option>').join("") + '</select>' +
+        button("Chọn Z", "demo-res-path", "secondary") + '</div>' +
+        '<h2>Res đã nhập</h2>' +
+        (demoResourceFiles.length ? '<ul class="import-history resource-import-list">' + demoResourceFiles.map((file,index) => '<li class="card"><span><strong>' + escapeText(file.name) + '</strong><small>' + (file.size / 1024).toFixed(1) + ' KB</small></span>' + button((activeDemoResource === file && activeDemoResourcePath === selectedDemoResourcePath) ? "Đang dùng" : "Áp dụng", "demo-res-apply-" + index, "primary", (activeDemoResource === file && activeDemoResourcePath === selectedDemoResourcePath)) + button("Xóa", "demo-res-delete-" + index, "secondary") + '</li>').join("") + '</ul>' : '<p class="muted">Chưa nhập tệp res.</p>'),
       permissions: () => title("Quyền", "Thiết lập quyền trước khi áp dụng map.") +
         permissionSummary() +
         row("Cấp quyền bộ nhớ", "Chọn hoặc đổi phương thức truy cập", "wrench", "lilac", "access") +
@@ -487,11 +555,11 @@
         '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>',
       settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.0.8</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.1.0</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Tính năng chưa ra mắt", "Đang phát triển", "info", "lilac")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v2.0.8 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v2.1.0 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Ảnh và tệp tạm · <b>" + cacheLabel() + "</b>", "Xóa", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -601,6 +669,12 @@
       render();
     });
 
+    document.addEventListener("change", event => {
+      if (event.target.id === "demo-resource-path-select") {
+        selectedDemoResourcePath = demoResourcePaths[Number(event.target.value)] || null;
+        render();
+      }
+    });
     document.addEventListener("input", event => {
       if (event.target.id === "search") {
         app.query = event.target.value;
@@ -613,6 +687,19 @@
       }
     });
 
+    function applyImportedFile(file, route, confirmed = false) {
+      if (applying) return;
+      if (!confirmed && ["Map 5v5", "Skin"].includes(file.category)) {
+        pendingImportTarget = file;
+        dialog.innerHTML = '<h2 id="dialog-title">Chọn đường dẫn đã thêm</h2><p>Áp dụng ' + escapeText(file.name) + ' vào Resources tại đường dẫn bạn chọn.</p><label class="pass-label" for="import-resource-path">Đường dẫn đích</label><select class="search" id="import-resource-path">' + demoResourcePaths.map(path => '<option value="' + escapeText(path.id) + '">' + escapeText(path.name) + '</option>').join("") + '</select><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Áp dụng", "confirm-import-path") + '</div>' + button("Thêm đường dẫn", "demo-res-path", "secondary full");
+        if (!dialog.open) dialog.showModal();
+        return;
+      }
+      applying = true;
+      dialog.innerHTML = '<h2 id="dialog-title">Đang áp dụng…</h2><p>Đang kiểm tra quyền và dữ liệu…</p><progress style="width:100%"></progress>';
+      if (!dialog.open) dialog.showModal();
+      native.applyImported(file.localId, route);
+    }
     function applyPack(pack) {
       if (applying) return;
       applying = true;
@@ -657,7 +744,62 @@
         return;
       }
 
+      if (action.startsWith("demo-res-delete-")) {
+        const index = Number(action.slice("demo-res-delete-".length));
+        const file = demoResourceFiles[index];
+        if (!file) return;
+        dialog.innerHTML = '<h2 id="dialog-title">Xóa res đã nhập?</h2><p>Xóa ' + escapeText(file.name) + ' khỏi danh sách đã nhập.</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Xóa", "demo-res-confirm-delete-" + index, "secondary restore-button") + '</div>';
+        if (!dialog.open) dialog.showModal(); return;
+      }
+      if (action.startsWith("demo-res-confirm-delete-")) {
+        const file = demoResourceFiles[Number(action.slice("demo-res-confirm-delete-".length))];
+        if (file) native.deleteBundle(file.localId);
+        return;
+      }
+      if (action.startsWith("demo-res-apply-")) {
+        const file = demoResourceFiles[Number(action.slice("demo-res-apply-".length))];
+        if (file) applyImportedFile(file, selectedDemoResourcePath?.id || "default");
+        return;
+      }
+      if (action.startsWith("demo-apply-")) {
+        const file = app.bundles.filter(x => x.category !== "Res")[Number(action.slice("demo-apply-".length))];
+        if (file) applyImportedFile(file, "default");
+        return;
+      }
+      if (action.startsWith("demo-delete-")) {
+        const file = app.bundles.filter(x => x.category !== "Res")[Number(action.slice("demo-delete-".length))];
+        if (file) native.deleteBundle(file.localId);
+        return;
+      }
+      if (action.startsWith("demo-type-")) {
+        demoCategory = ["Map 5v5", "Map cờ", "Skin"][Number(action.slice("demo-type-".length))];
+        dialog.close(); native.chooseImport(demoCategory); return;
+      }
       switch (action) {
+        case "confirm-import-path": {
+          const route = dialog.querySelector("#import-resource-path")?.value;
+          if (!route || !pendingImportTarget) break;
+          const file = pendingImportTarget; pendingImportTarget = null;
+          applyImportedFile(file, route, true); break;
+        }
+        case "demo-res-path":
+          dialog.innerHTML = '<h2 id="dialog-title">Thêm đường dẫn</h2><p>Chọn thư mục cha chứa Resources. Đặt tên để dễ nhận biết.</p><label class="pass-label" for="resource-path-name">Tên đường dẫn</label><input id="resource-path-name" class="search" maxlength="60" placeholder="Ví dụ: Res Liên Quân"><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Chọn thư mục", "demo-res-save-path") + '</div>';
+          if (!dialog.open) dialog.showModal(); break;
+        case "demo-res-save-path": {
+          const input = dialog.querySelector("#resource-path-name");
+          const name = input.value.trim(); if (!name) { input.focus(); break; }
+          dialog.close(); native.chooseResourcePath(name); break;
+        }
+        case "demo-import-res": demoCategory = "Res"; native.chooseImport("Res"); break;
+        case "demo-resources":
+          if (dialog.open) dialog.close();
+          go("resources", true); break;
+        case "demo-delete-res":
+          dialog.innerHTML = '<h2 id="dialog-title">Xóa res cũ?</h2><p>Xóa các thư mục Resources1, Resources2… trong đường dẫn đang chọn. Resources đang dùng được giữ lại.</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Xóa res cũ", "demo-delete-res-confirm", "secondary restore-button") + '</div>';
+          dialog.showModal(); break;
+        case "demo-delete-res-confirm":
+          dialog.innerHTML = '<h2 id="dialog-title">Đang xóa res cũ…</h2><progress></progress>';
+          native.deleteResources(selectedDemoResourcePath?.id || "default"); break;
         case "saf-zarchiver":
           app.mode = "SAF V2";
           awaitingMemory = true;
@@ -768,7 +910,9 @@
         case "community-youtube": case "community-tiktok": case "community-telegram":
           native.openExternal(contactLinks[action]);
           break;
-        case "pick": native.chooseAssetBundle(); break;
+        case "pick":
+          dialog.innerHTML = '<h2 id="dialog-title">Chọn loại tệp</h2><div class="import-types">' + ["Map 5v5", "Map cờ", "Skin"].map((type,index) => button(type, "demo-type-" + index, "secondary full")).join("") + '</div>' + button("Hủy", "close", "secondary full");
+          dialog.showModal(); break;
         case "save-bundle": {
           const input = dialog.querySelector("#bundle-name");
           const name = input.value.trim();
@@ -880,6 +1024,21 @@
       if (!dialog.open) dialog.showModal();
     }
     window.senceResult = (event, result) => {
+      if (event === "resource-state" || event === "resource-paths") {
+        if (result.error) { notice("Đường dẫn Resources", result.error); return; }
+        demoResourcePaths = result.paths || [];
+        selectedDemoResourcePath = demoResourcePaths.find(x => x.id === result.selected) || demoResourcePaths.find(x => x.id === selectedDemoResourcePath?.id) || demoResourcePaths[0] || null;
+        if (result.active) { activeDemoResource = app.bundles.find(x => x.localId === result.active.localId) || result.active; activeDemoResourcePath = demoResourcePaths.find(x => x.id === result.active.route) || null; }
+        if (app.page === "resources") render(); return;
+      }
+      if (event === "resource-delete") { notice("Xóa res cũ", result.message || result.error); return; }
+      if (event === "import-apply") {
+        applying = false;
+        if (result.error) { notice("Chưa áp dụng được", result.error); return; }
+        if (result.category === "Map cờ") { app.pack = result.pack; dialog.close(); go("home"); }
+        else { if (result.category === "Res") { activeDemoResource = app.bundles.find(x => x.localId === result.active.localId) || result.active; activeDemoResourcePath = demoResourcePaths.find(x => x.id === result.active.route) || null; } render(); }
+        notice("Áp dụng thành công", (result.message || "Đã thay và xác minh tệp map.") + " Hãy tắt Shizuku và gỡ lỗi khi dùng xong."); return;
+      }
       if (event === "zarchiver") { awaitingMemory = false; notice("ZArchiver", result.error || result.message); return; }
       if (event === "permissions-reset") {
         notice("Đặt lại quyền", result.message || result.error);
@@ -944,6 +1103,7 @@
         return;
       }
       if (event === "permission") {
+        native.resourceState();
         memoryStatus = result.message || result.error || "Chưa có quyền ghi.";
         if (result.shizuku && result.adb && result.saf) memoryDetails = result;
         if (awaitingMemory && result.selectedReady && result.selectedMethod === app.mode) {
@@ -1014,9 +1174,9 @@
         return;
       }
       if (event === "bundle-selected") {
-        dialog.innerHTML = '<h2 id="dialog-title">Đặt tên AssetBundle</h2><p>' + escapeText(result.name) +
+        dialog.innerHTML = '<h2 id="dialog-title">Đặt tên tệp</h2><p>' + escapeText(result.name) +
           '</p><label class="pass-label" for="bundle-name">Tên hiển thị</label><input class="search" id="bundle-name" maxlength="80" value="' +
-          escapeText(result.name.replace(/\.assetbundle$/i, "").slice(0, 80)) + '">' +
+          escapeText(result.name.replace(/\.(assetbundle|zip)$/i, "").slice(0, 80)) + '">' +
           '<div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Lưu", "save-bundle") + '</div>';
         dialog.showModal();
         dialog.querySelector("#bundle-name").select();
@@ -1024,9 +1184,11 @@
       }
       if (event === "bundles") {
         app.bundles = result.entries;
+        demoResourceFiles = app.bundles.filter(x => x.category === "Res");
+        if (activeDemoResource) activeDemoResource = app.bundles.find(x => x.localId === activeDemoResource.localId) || activeDemoResource;
         if (dialog.open) dialog.close();
         app.feedback = result.message;
-        if (app.page === "import") render();
+        if (["import", "resources"].includes(app.page)) render();
         return;
       }
       if (event === "apply" || event === "restore") {
@@ -1048,6 +1210,7 @@
     render();
     native.checkMemory();
     native.autoVersion();
+    native.resourceState();
     refreshDrive();
   </script>
 </body>

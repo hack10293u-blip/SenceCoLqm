@@ -237,6 +237,45 @@ internal class LocalAdbWifi(
 
     fun isConnected(): Boolean = connected && manager.isConnected
 
+    fun resourceStore(): ResourceStore {
+        check(isConnected()) { "Hãy kết nối ADB trước." }
+        fun path(relative: String): String {
+            require(relative.split('/').none { it == ".." || it == "." } && !relative.startsWith('/'))
+            return "'" + ("$GAME_FILES/$relative").replace("'", "'\\''") + "'"
+        }
+        fun execute(script: String): String = manager.openStream("exec:$script").use { it.openInputStream().bufferedReader().readText() }
+        fun checked(script: String) { check(execute("$script && printf SENCE_OK").endsWith("SENCE_OK")) { "ADB không thực hiện được thao tác Resources." } }
+        return object : ResourceStore {
+            override fun list(relative: String): List<Pair<String, Boolean>> = execute("ls -1p ${path(relative)}").lineSequence().filter { it.isNotEmpty() }.map { it.trimEnd('/') to it.endsWith('/') }.toList()
+            override fun exists(relative: String) = execute("[ -e ${path(relative)} ] && printf yes") == "yes"
+            override fun mkdir(relative: String) = checked("mkdir -p ${path(relative)}")
+            override fun read(relative: String): InputStream {
+                val stream = manager.openStream("exec:cat ${path(relative)}")
+                return object : FilterInputStream(stream.openInputStream()) { override fun close() = stream.close() }
+            }
+            override fun write(relative: String, input: InputStream) {
+                manager.openStream("sync:").use { stream ->
+                    val output = java.io.DataOutputStream(stream.openOutputStream())
+                    fun packet(name: String, bytes: ByteArray) {
+                        output.write(name.toByteArray(Charsets.US_ASCII)); output.writeInt(Integer.reverseBytes(bytes.size)); output.write(bytes)
+                    }
+                    packet("SEND", "$GAME_FILES/$relative,33200".toByteArray(Charsets.UTF_8))
+                    val buffer = ByteArray(65536)
+                    while (true) { val size = input.read(buffer); if (size < 0) break; packet("DATA", buffer.copyOf(size)) }
+                    output.writeBytes("DONE"); output.writeInt(Integer.reverseBytes((System.currentTimeMillis() / 1000).toInt())); output.flush()
+                    val response = java.io.DataInputStream(stream.openInputStream())
+                    val code = ByteArray(4); response.readFully(code)
+                    val length = Integer.reverseBytes(response.readInt())
+                    require(length in 0..65536)
+                    val message = ByteArray(length); response.readFully(message)
+                    check(String(code, Charsets.US_ASCII) == "OKAY") { "ADB ghi thất bại: ${String(message, Charsets.UTF_8)}" }
+                }
+            }
+            override fun rename(from: String, to: String) = checked("[ ! -e ${path(to)} ] && mv ${path(from)} ${path(to)}")
+            override fun delete(relative: String) { require(relative.isNotEmpty()); checked("rm -rf ${path(relative)}") }
+        }
+    }
+
     fun disconnect() {
         connected = false
         pairingEndpoint = null

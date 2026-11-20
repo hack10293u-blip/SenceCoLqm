@@ -8,5 +8,7 @@ interface IMapFile {
     void replace(in ParcelFileDescriptor replacement) = 2;
     String probe() = 3;
     void fixData(in ParcelFileDescriptor archive) = 4;
+    void installResources(in ParcelFileDescriptor archive, boolean replace) = 5;
+    int deleteResourceBackups() = 6;
     void destroy() = 16777114;
 }
