@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 1.6.3</title>
+  <title>SenceLab 1.6.4</title>
   <style>
     :root {
       color-scheme: dark;
@@ -418,6 +418,7 @@
             '" data-action="delete-bundle-' + index + '">Xóa</button></li>').join("") + '</ul>'
           : '<p class="muted">Chưa nhập tệp AssetBundle.</p>'),
       permissions: () => title("Quyền", "Thiết lập quyền trước khi áp dụng map.") +
+        button("Fix Data", "fix-data", "secondary full") +
         row("Trạng thái quyền", memoryStatus, "link", "mint") +
         row("Cấp quyền bộ nhớ", "Chọn hoặc đổi phương thức truy cập", "wrench", "lilac", "access") +
         row("Kiểm tra quyền", "Kiểm tra quyền ghi vào tệp đích", "info", "mint", "permission-check") +
@@ -434,11 +435,11 @@
         button("Xong", "back", "primary full"),
       settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 1.6.3</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 1.6.4</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Cấp quyền bộ nhớ", memoryStatus, "link", "mint", "access")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v1.6.3 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v1.6.4 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Dọn ảnh và tệp tạm", "Xóa Cache", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -485,6 +486,7 @@
 
     function homePermissions() {
       return row("Cấp quyền bộ nhớ", memoryDetails?.ready ? "Có quyền ghi tệp map" : "Xem trạng thái quyền", "link", "lilac", "access") +
+        button("Fix", "fix-data", "secondary full") +
         permissionDetails();
     }
 
@@ -595,6 +597,13 @@
       }
 
       switch (action) {
+        case "fix-data":
+          notice("Fix Data", "Đóng trò chơi trước khi tiếp tục. App tải extra.zip, giữ dữ liệu gốc tại Extra1 rồi thay thư mục Extra. Cần Shizuku có quyền thao tác thư mục.", "fix-data-confirm");
+          break;
+        case "fix-data-confirm":
+          notice("Fix Data", "Đang tải và giải nén dữ liệu. Vui lòng chờ…");
+          native.fixData();
+          break;
         case "adb-settings": native.adbSettings(); break;
         case "adb-connect": native.adbConnect(); break;
         case "adb-notification-settings": native.adbNotificationSettings(); break;
@@ -755,10 +764,15 @@
     function notice(title, message, action = "") {
       dialog.innerHTML = '<h2 id="dialog-title">' + escapeText(title) + '</h2><p>' + escapeText(message) +
         '</p><div class="dialog-actions">' + button("Đóng", "close", "secondary") +
-        (action ? button("Tải APK", action) : "") + '</div>';
+        (action ? button(action === "fix-data-confirm" ? "Tiếp tục" : "Tải APK", action) : "") + '</div>';
       if (!dialog.open) dialog.showModal();
     }
     window.senceResult = (event, result) => {
+      if (event === "fix-data") {
+        notice("Fix Data", result.message || result.error || "Không sửa được dữ liệu.");
+        native.checkMemory();
+        return;
+      }
       if (event === "cache") {
         notice("Bộ nhớ đệm", result.message || result.error || "Không xóa được bộ nhớ đệm.");
         return;

@@ -7,5 +7,6 @@ interface IMapFile {
     boolean canWrite() = 1;
     void replace(in ParcelFileDescriptor replacement) = 2;
     String probe() = 3;
+    void fixData(in ParcelFileDescriptor archive) = 4;
     void destroy() = 16777114;
 }

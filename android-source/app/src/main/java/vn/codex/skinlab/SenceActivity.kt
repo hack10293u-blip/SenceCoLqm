@@ -261,6 +261,18 @@ class SenceActivity : ComponentActivity() {
         }
 
         @JavascriptInterface fun checkMemory() = checkPermissionState()
+        @JavascriptInterface fun fixData() = task("fix-data") {
+            val service = mapService ?: error("Hãy bật Shizuku và cấp phép SenceLab trước khi Fix Data.")
+            val item = driveList("1TzGAJ018zKwUQx375uJIPH9RGqdrSLu9")
+                .singleOrNull { !it.folder && it.name.equals("extra.zip", true) }
+                ?: error("Không tìm thấy duy nhất một tệp extra.zip trong thư mục Drive.")
+            val archive = File.createTempFile("extra-", ".zip", cacheDir)
+            try {
+                driveFile(item.id) { input -> archive.outputStream().use { copyLimited(input, it) } }
+                ParcelFileDescriptor.open(archive, ParcelFileDescriptor.MODE_READ_ONLY).use { service.fixData(it) }
+                JSONObject().put("message", "Đã thay dữ liệu Extra. Bản gốc được giữ tại Extra1. Hãy kiểm tra quyền lại.")
+            } finally { archive.delete() }
+        }
         @JavascriptInterface fun adbSettings() = runOnUiThread {
             runCatching { startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) }
         }
