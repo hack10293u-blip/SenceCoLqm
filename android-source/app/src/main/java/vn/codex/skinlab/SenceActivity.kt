@@ -117,13 +117,19 @@ class SenceActivity : ComponentActivity() {
                 val path = android.system.Os.readlink("/proc/self/fd/${it.fd}")
                 path == GAME_MAP_PATH || (path.startsWith("/mnt/") && path.endsWith(GAME_MAP_PATH.removePrefix("/storage/emulated/0")))
             } == true }.getOrDefault(false)
-            require(documentMatches || fileMatches) {
-                "Tệp đã chọn không đúng đường dẫn map của Liên Quân."
+            val nameMatches = runCatching { displayName(uri) == targetName }.getOrDefault(false)
+            require(documentMatches || fileMatches || nameMatches) {
+                "Hãy chọn tệp $targetName trong thư mục Extra/2022.V3/assetbundle/modules/autochess của trò chơi."
             }
+            val header = read(uri).use { readUpTo(it, 8).toString(Charsets.US_ASCII) }
+            require(header.startsWith("UnityFS")) { "Tệp đã chọn không phải AssetBundle hợp lệ." }
+            val writable = runCatching {
+                contentResolver.openFileDescriptor(uri, "rw")?.use { true } == true
+            }.getOrDefault(false)
+            require(writable) { "Đã nhận đúng tệp nhưng ứng dụng quản lý tệp chưa cấp quyền ghi cho SenceLab. Hãy thử SAF V1 hoặc trình chọn tệp Android." }
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             val persisted = runCatching { contentResolver.takePersistableUriPermission(uri, flags) }.isSuccess
             if (!persisted) sessionSaf = uri
-            contentResolver.openFileDescriptor(uri, "rw")?.use { } ?: error("Ứng dụng chọn tệp chưa cấp quyền ghi. Hãy dùng trình chọn tệp Android hoặc cấp quyền thư mục bằng SAF V1.")
             check(state.edit().putString("target", uri.toString()).putString("saf2", uri.toString()).commit())
             runOnUiThread { checkPermissionState() }
             JSONObject().put("message", if (persisted) "Đã lưu quyền SAF V2 cho đúng tệp map." else "Đã cấp quyền SAF V2 trong phiên này. Khi mở lại app có thể cần chọn lại tệp.")
