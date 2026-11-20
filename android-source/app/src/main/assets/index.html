@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 2.1.0</title>
+  <title>SenceLab 2.1.1</title>
   <style>
     :root {
       color-scheme: dark;
@@ -555,11 +555,11 @@
         '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>',
       settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.1.0</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.1.1</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Tính năng chưa ra mắt", "Đang phát triển", "info", "lilac")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v2.1.0 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v2.1.1 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Ảnh và tệp tạm · <b>" + cacheLabel() + "</b>", "Xóa", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -700,6 +700,14 @@
       if (!dialog.open) dialog.showModal();
       native.applyImported(file.localId, route);
     }
+
+    function confirmImportedDelete(file) {
+      if (!file) return;
+      dialog.innerHTML = '<h2 id="dialog-title">Xóa tệp đã nhập?</h2><p>Xóa ' + escapeText(file.name) +
+        ' khỏi SenceLab?</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") +
+        button("Xóa", "confirm-delete-import-" + file.localId, "secondary restore-button") + '</div>';
+      if (!dialog.open) dialog.showModal();
+    }
     function applyPack(pack) {
       if (applying) return;
       applying = true;
@@ -717,7 +725,8 @@
       if (action.startsWith("drive-entry-")) return showPack(driveEntries[Number(action.slice(12))]);
       if (action.startsWith("hot-pack-")) return showPack(hotPacks[Number(action.slice(9))]);
       if (action.startsWith("local-apply-")) return applyPack(app.bundles[Number(action.slice(12))]);
-      if (action.startsWith("delete-bundle-")) return native.deleteBundle(app.bundles[Number(action.slice(14))].localId);
+      if (action.startsWith("delete-bundle-")) return confirmImportedDelete(app.bundles[Number(action.slice(14))]);
+      if (action.startsWith("confirm-delete-import-")) return native.deleteBundle(action.slice("confirm-delete-import-".length));
       if (action.startsWith("guide-item-")) {
         const [name, , detail] = guides[Number(action.slice(11))];
         dialog.innerHTML = '<h2 id="dialog-title">' + name + '</h2><p>' + detail + '</p>' +
@@ -768,7 +777,7 @@
       }
       if (action.startsWith("demo-delete-")) {
         const file = app.bundles.filter(x => x.category !== "Res")[Number(action.slice("demo-delete-".length))];
-        if (file) native.deleteBundle(file.localId);
+        confirmImportedDelete(file);
         return;
       }
       if (action.startsWith("demo-type-")) {
@@ -783,12 +792,21 @@
           applyImportedFile(file, route, true); break;
         }
         case "demo-res-path":
-          dialog.innerHTML = '<h2 id="dialog-title">Thêm đường dẫn</h2><p>Chọn thư mục cha chứa Resources. Đặt tên để dễ nhận biết.</p><label class="pass-label" for="resource-path-name">Tên đường dẫn</label><input id="resource-path-name" class="search" maxlength="60" placeholder="Ví dụ: Res Liên Quân"><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Chọn thư mục", "demo-res-save-path") + '</div>';
+          dialog.innerHTML = '<h2 id="dialog-title">Thêm đường dẫn</h2><p>Nhập thư mục cha chứa Resources. SenceLab sẽ kiểm tra quyền tạo, ghi và đổi tên trực tiếp tại đây.</p><label class="pass-label" for="resource-path-name">Tên đường dẫn</label><input id="resource-path-name" class="search" maxlength="60" placeholder="Ví dụ: Resources Liên Quân"><label class="pass-label" for="resource-path-value">Đường dẫn</label><input id="resource-path-value" class="search" placeholder="/storage/emulated/0/Android/data/com.garena.game.kgvn/files"><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Lưu đường dẫn", "demo-res-save-path") + '</div>' + button("Chọn bằng ZArchiver", "choose-resource-folder", "secondary full");
           if (!dialog.open) dialog.showModal(); break;
-        case "demo-res-save-path": {
+        case "choose-resource-folder": {
           const input = dialog.querySelector("#resource-path-name");
           const name = input.value.trim(); if (!name) { input.focus(); break; }
-          dialog.close(); native.chooseResourcePath(name); break;
+          native.chooseResourcePath(name); break;
+        }
+        case "demo-res-save-path": {
+          const nameInput = dialog.querySelector("#resource-path-name");
+          const pathInput = dialog.querySelector("#resource-path-value");
+          const name = nameInput.value.trim(), path = pathInput.value.trim();
+          if (!name) { nameInput.focus(); break; }
+          if (!path) { pathInput.focus(); break; }
+          dialog.innerHTML = '<h2 id="dialog-title">Đang kiểm tra đường dẫn…</h2><p>Kiểm tra quyền ghi trực tiếp của SenceLab.</p><progress></progress>';
+          native.addResourcePath(name, path); break;
         }
         case "demo-import-res": demoCategory = "Res"; native.chooseImport("Res"); break;
         case "demo-resources":
@@ -1029,7 +1047,10 @@
         demoResourcePaths = result.paths || [];
         selectedDemoResourcePath = demoResourcePaths.find(x => x.id === result.selected) || demoResourcePaths.find(x => x.id === selectedDemoResourcePath?.id) || demoResourcePaths[0] || null;
         if (result.active) { activeDemoResource = app.bundles.find(x => x.localId === result.active.localId) || result.active; activeDemoResourcePath = demoResourcePaths.find(x => x.id === result.active.route) || null; }
-        if (app.page === "resources") render(); return;
+        if (event === "resource-paths" && dialog.open) dialog.close();
+        if (app.page === "resources") render();
+        if (event === "resource-paths" && pendingImportTarget) applyImportedFile(pendingImportTarget, selectedDemoResourcePath?.id || "default");
+        return;
       }
       if (event === "resource-delete") { notice("Xóa res cũ", result.message || result.error); return; }
       if (event === "import-apply") {

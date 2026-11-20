@@ -172,11 +172,16 @@ class SenceActivity : ComponentActivity() {
     private val chooseResourceTree = registerForActivityResult(object : ActivityResultContracts.OpenDocumentTree() {
         override fun createIntent(context: android.content.Context, input: Uri?): Intent {
             val base = super.createIntent(context, input)
-            val packaged = Intent(base).setPackage("ru.zdevs.zarchiver")
-            return if (packaged.resolveActivity(context.packageManager) != null) packaged else base
+            return listOf("ru.zdevs.zarchiver", "ru.zdevs.zarchiver.pro")
+                .map { Intent(base).setPackage(it) }
+                .firstOrNull { it.resolveActivity(context.packageManager) != null }
+                ?: error("Phiên bản ZArchiver trên máy không hỗ trợ cấp quyền cả thư mục cho SenceLab. Quyền chọn một tệp không đủ để đổi tên và giải nén Resources.")
         }
     }) { tree ->
         if (tree != null) task("resource-paths") {
+            require(SafResources(contentResolver, tree).list("").any { it.first == "Resources" && it.second }) {
+                "Chọn thư mục cha có chứa Resources bên trong, không chọn chính thư mục Resources."
+            }
             contentResolver.takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             val id = UUID.randomUUID().toString()
             check(resourcePaths.edit().putString(id, JSONObject().put("name", pendingPathName).put("uri", tree.toString()).toString()).commit())
@@ -248,6 +253,15 @@ class SenceActivity : ComponentActivity() {
     }
 
     inner class Bridge {
+        @JavascriptInterface fun addResourcePath(name: String, path: String) = task("resource-paths") {
+            val label = name.trim()
+            require(label.length in 1..60 && label.none { it.isISOControl() }) { "Đặt tên đường dẫn từ 1 đến 60 ký tự." }
+            val root = resourceDirectory(path)
+            require(probeDirectResources(root)) { "SenceLab chưa có quyền ghi trực tiếp tại đường dẫn này. Nhập đường dẫn không tự cấp quyền truy cập." }
+            val id = UUID.randomUUID().toString()
+            check(resourcePaths.edit().putString(id, JSONObject().put("name", label).put("path", root.path).put("type", "direct").toString()).commit())
+            JSONObject().put("paths", resourcePathList()).put("selected", id)
+        }
         @JavascriptInterface fun chooseImport(category: String) = runOnUiThread {
             require(category in listOf("Map 5v5", "Map cờ", "Skin", "Res"))
             importCategory = category
@@ -259,7 +273,9 @@ class SenceActivity : ComponentActivity() {
         }
         @JavascriptInterface fun chooseResourcePath(name: String) = runOnUiThread {
             pendingPathName = name.trim().take(60).ifEmpty { "Resources" }
-            chooseResourceTree.launch(null)
+            runCatching { chooseResourceTree.launch(null) }.onFailure {
+                emit("resource-paths", JSONObject().put("error", it.message ?: "Không mở được ZArchiver để chọn thư mục."))
+            }
         }
         @JavascriptInterface fun applyImported(id: String, route: String) = task("import-apply") {
             val category = bundleTypes.getString(id, "Map cờ")
@@ -308,6 +324,7 @@ class SenceActivity : ComponentActivity() {
         }
         @JavascriptInterface fun resetPermissions() = task("permissions-reset") {
             sessionSaf = null
+            check(resourcePaths.edit().clear().commit())
             check(state.edit().putBoolean("permissionsReset", true).putStringSet("enabledMethods", emptySet())
                 .remove("target").remove("saf1").remove("saf2").remove("fixTree").remove("selectedPermission").commit())
             contentResolver.persistedUriPermissions.forEach { grant ->
@@ -771,28 +788,60 @@ class SenceActivity : ComponentActivity() {
     }
 
     private fun resourcePathList(): JSONArray = JSONArray().apply {
-        val defaultReady = (permissionEnabled("LDPlayer trực tiếp") && Build.VERSION.SDK_INT <= 28 && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) || shizukuConnected() || (adbStarted && adbWifi.isConnected()) || state.getString("fixTree", null)?.let { path -> contentResolver.persistedUriPermissions.any { it.uri.toString() == path && it.isWritePermission && it.isReadPermission } } == true
+        val defaultReady = (permissionEnabled("LDPlayer trực tiếp") && probeDirectResources(File(GAME_FILES))) || shizukuConnected() || (adbStarted && adbWifi.isConnected()) || state.getString("fixTree", null)?.let { path -> contentResolver.persistedUriPermissions.any { it.uri.toString() == path && it.isWritePermission && it.isReadPermission } } == true
         put(JSONObject().put("id", "default").put("name", "Mặc định").put("path", GAME_FILES).put("ready", defaultReady))
         resourcePaths.all.forEach { (id, value) -> runCatching {
             val item = JSONObject(value as String)
-            val ready = contentResolver.persistedUriPermissions.any { it.uri.toString() == item.getString("uri") && it.isReadPermission && it.isWritePermission }
-            put(JSONObject().put("id", id).put("name", item.getString("name")).put("path", item.getString("uri")).put("ready", ready))
+            val direct = item.optString("type") == "direct"
+            val ready = if (direct) probeDirectResources(resourceDirectory(item.getString("path"))) else contentResolver.persistedUriPermissions.any { it.uri.toString() == item.getString("uri") && it.isReadPermission && it.isWritePermission }
+            put(JSONObject().put("id", id).put("name", item.getString("name")).put("path", if (direct) item.getString("path") else item.getString("uri")).put("ready", ready))
         } }
     }
 
     private fun resourceStore(route: String): ResourceStore? {
         if (route != "default") {
             val info = resourcePaths.getString(route, null)?.let(::JSONObject) ?: error("Hãy chọn đường dẫn đã cấp quyền.")
+            if (info.optString("type") == "direct") {
+                val root = resourceDirectory(info.getString("path"))
+                check(probeDirectResources(root)) { "Không còn quyền ghi trực tiếp tại đường dẫn đã lưu." }
+                return DiskResources(root)
+            }
             val tree = Uri.parse(info.getString("uri"))
             require(contentResolver.persistedUriPermissions.any { it.uri == tree && it.isWritePermission && it.isReadPermission }) { "Đường dẫn chưa có quyền ghi. Hãy chọn lại thư mục." }
             return SafResources(contentResolver, tree)
         }
-        if (permissionEnabled("LDPlayer trực tiếp") && Build.VERSION.SDK_INT <= 28 && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) return DiskResources()
+        if (permissionEnabled("LDPlayer trực tiếp") && probeDirectResources(File(GAME_FILES))) return DiskResources()
         if (shizukuConnected()) return null
         if (adbStarted && adbWifi.isConnected()) return adbWifi.resourceStore()
         val tree = state.getString("fixTree", null)?.let(Uri::parse)
         if (tree != null && contentResolver.persistedUriPermissions.any { it.uri == tree && it.isReadPermission && it.isWritePermission }) return SafResources(contentResolver, tree)
         error("Hãy cấp quyền bộ nhớ. Với SAF, chọn thư mục files chứa Resources bằng nút Chọn Z/Chọn thư mục.")
+    }
+
+    private fun resourceDirectory(path: String): File {
+        require(path.trim().startsWith('/')) { "Nhập đường dẫn thư mục đầy đủ." }
+        val root = File(path.trim()).canonicalFile
+        val base = File(GAME_FILES).canonicalPath
+        require(root.path == base || root.path.startsWith(base + File.separator)) { "Đường dẫn phải nằm trong thư mục files của trò chơi." }
+        require(root.isDirectory && root.name != "Resources") { "Chọn thư mục cha chứa Resources, không chọn chính Resources." }
+        return root
+    }
+
+    private fun probeDirectResources(root: File): Boolean {
+        val first = File(root, "SencePermission-${UUID.randomUUID()}")
+        val second = File(root, first.name + "-renamed")
+        return try {
+            check(root.isDirectory && first.mkdir())
+            val file = File(first, "probe")
+            file.outputStream().use { it.write(byteArrayOf(1)); it.fd.sync() }
+            check(file.readBytes().contentEquals(byteArrayOf(1)))
+            check(first.renameTo(second))
+            check(File(second, "probe").delete() && second.delete())
+            true
+        } catch (_: Exception) { false } finally {
+            if (first.exists()) first.deleteRecursively()
+            if (second.exists()) second.deleteRecursively()
+        }
     }
 
     private fun installResourceBundle(id: String, route: String, replace: Boolean) {
