@@ -11,5 +11,8 @@ interface IMapFile {
     void installResources(in ParcelFileDescriptor archive, boolean replace) = 5;
     int deleteResourceBackups() = 6;
     boolean canWriteResources() = 7;
+    void installResourcesAt(in ParcelFileDescriptor archive, boolean replace, String root) = 8;
+    int deleteResourceBackupsAt(String root) = 9;
+    boolean canWriteResourcesAt(String root) = 10;
     void destroy() = 16777114;
 }

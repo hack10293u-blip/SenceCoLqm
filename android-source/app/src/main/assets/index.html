@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 2.1.2</title>
+  <title>SenceLab 2.1.3</title>
   <style>
     :root {
       color-scheme: dark;
@@ -534,12 +534,12 @@
         '</section>' + row("Fix Resources", "Nhập res và dọn tài nguyên cũ", "wrench", "lilac", "demo-resources") + '<h2>Đã nhập</h2>' + (app.bundles.filter(x => x.category !== "Res").length ? '<div class="pack-grid">' + app.bundles.filter(x => x.category !== "Res").map((file,index) =>
         '<article class="card imported-tile"><div class="imported-cover ' + (file.category === "Skin" ? 'pink' : file.category === "Map cờ" ? 'mint' : 'lilac') + '">' + icon(file.category === "Skin" ? "crown" : "file") + '</div><div class="imported-info"><small>' + escapeText(file.category || "Map cờ") + '</small><strong>' + escapeText(file.name) + '</strong><div class="imported-actions">' + button("Áp dụng", "demo-apply-" + index) + button("Xóa", "demo-delete-" + index, "secondary") + '</div></div></article>').join("") + '</div>' : '<p class="muted">Chưa nhập tệp nào.</p>'),
       resources: () => '<div class="resources-title"><h1>Fix Resources</h1><button class="resources-trash" data-action="demo-delete-res" aria-label="Xóa res cũ" title="Xóa res cũ">' + icon("trash") + '</button></div><p class="intro">Nhập res rồi chọn tệp muốn áp dụng.</p>' +
-        '<section class="card resources-status" role="status"><span class="status-dot ' + (selectedDemoResourcePath?.checking ? 'yellow' : !selectedDemoResourcePath?.ready ? 'red' : (activeDemoResource && activeDemoResourcePath === selectedDemoResourcePath) ? 'green' : 'yellow') + '"></span><div><small>Trạng thái tài nguyên</small><strong>' + (selectedDemoResourcePath?.checking ? 'Đang kiểm tra đường dẫn…' : !selectedDemoResourcePath?.ready ? 'Chưa có quyền bộ nhớ' : (activeDemoResource && activeDemoResourcePath === selectedDemoResourcePath) ? 'Đang dùng ' + escapeText(activeDemoResource.name) : 'Chưa fix') + '</strong></div></section>' +
+        '<section class="card resources-status" role="status"><span class="status-dot ' + (selectedDemoResourcePath?.checking ? 'yellow' : !selectedDemoResourcePath?.ready ? 'red' : (activeDemoResource && activeDemoResourcePath?.id === selectedDemoResourcePath?.id) ? 'green' : 'yellow') + '"></span><div><small>Trạng thái tài nguyên</small><strong>' + (selectedDemoResourcePath?.checking ? 'Đang kiểm tra đường dẫn…' : !selectedDemoResourcePath?.ready ? 'Chưa có quyền bộ nhớ' : (activeDemoResource && activeDemoResourcePath?.id === selectedDemoResourcePath?.id) ? 'Đang dùng ' + escapeText(activeDemoResource.name) : 'Chưa fix') + '</strong></div></section>' +
         '<div class="resource-input-actions">' + button("Nhập", "demo-import-res", "primary") +
         '<select id="demo-resource-path-select" class="resource-path-select" aria-label="Đường dẫn đã thêm"><option value=""' + (!selectedDemoResourcePath?.ready ? ' selected' : '') + ' disabled>Đường dẫn đã thêm</option>' + demoResourcePaths.map((path,index) => '<option value="' + index + '"' + (selectedDemoResourcePath === path ? ' selected' : '') + '>' + escapeText(path.name) + '</option>').join("") + '</select>' +
         button("Chọn Z", "demo-res-path", "secondary") + '</div>' +
         '<h2>Res đã nhập</h2>' +
-        (demoResourceFiles.length ? '<ul class="import-history resource-import-list">' + demoResourceFiles.map((file,index) => '<li class="card"><span><strong>' + escapeText(file.name) + '</strong><small>' + (file.size / 1024).toFixed(1) + ' KB</small></span>' + button((activeDemoResource === file && activeDemoResourcePath === selectedDemoResourcePath) ? "Đang dùng" : "Áp dụng", "demo-res-apply-" + index, "primary", (activeDemoResource === file && activeDemoResourcePath === selectedDemoResourcePath)) + button("Xóa", "demo-res-delete-" + index, "secondary") + '</li>').join("") + '</ul>' : '<p class="muted">Chưa nhập tệp res.</p>'),
+        (demoResourceFiles.length ? '<ul class="import-history resource-import-list">' + demoResourceFiles.map((file,index) => '<li class="card"><span><strong>' + escapeText(file.name) + '</strong><small>' + (file.size / 1024).toFixed(1) + ' KB</small></span>' + button((activeDemoResource === file && activeDemoResourcePath?.id === selectedDemoResourcePath?.id) ? "Đang dùng" : "Áp dụng", "demo-res-apply-" + index, "primary", (activeDemoResource === file && activeDemoResourcePath?.id === selectedDemoResourcePath?.id)) + button("Xóa", "demo-res-delete-" + index, "secondary") + '</li>').join("") + '</ul>' : '<p class="muted">Chưa nhập tệp res.</p>'),
       permissions: () => title("Quyền", "Thiết lập quyền trước khi áp dụng map.") +
         permissionSummary() +
         row("Cấp quyền bộ nhớ", "Chọn hoặc đổi phương thức truy cập", "wrench", "lilac", "access") +
@@ -557,11 +557,11 @@
         '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>',
       settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.1.2</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.1.3</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Tính năng chưa ra mắt", "Đang phát triển", "info", "lilac")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v2.1.2 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v2.1.3 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Ảnh và tệp tạm · <b>" + cacheLabel() + "</b>", "Xóa", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -676,7 +676,7 @@
         selectedDemoResourcePath = demoResourcePaths[Number(event.target.value)] || null;
         if (selectedDemoResourcePath) selectedDemoResourcePath.checking = true;
         render();
-        native.resourceState();
+        if (selectedDemoResourcePath) native.authorizeResourcePath(selectedDemoResourcePath.id);
       }
     });
     document.addEventListener("input", event => {
@@ -914,7 +914,7 @@
           break;
         case "admin":
           dialog.innerHTML = '<h2 id="dialog-title">Admin Login</h2>' + (app.admin
-            ? '<p>Đã đăng nhập Admin.</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Đăng xuất", "admin-logout", "secondary") + button("Đặt lại", "reset-app", "secondary restore-button") + '</div>'
+            ? '<p>Đã đăng nhập Admin.</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Đăng xuất", "admin-logout", "secondary") + '</div>'
             : '<form id="admin-form">' +
               '<label class="pass-label" for="admin-user">Tài khoản</label><input class="search" id="admin-user" name="username" autocomplete="username" required>' +
               '<label class="pass-label" for="admin-password">Mật khẩu</label><input class="search" id="admin-password" name="password" type="password" autocomplete="current-password" required>' +
@@ -1046,6 +1046,17 @@
       if (!dialog.open) dialog.showModal();
     }
     window.senceResult = (event, result) => {
+      if (event === "resource-permission") {
+        demoResourcePaths = result.paths || demoResourcePaths;
+        selectedDemoResourcePath = demoResourcePaths.find(path => path.id === result.route) || selectedDemoResourcePath;
+        if (selectedDemoResourcePath) selectedDemoResourcePath.checking = false;
+        if (app.page === "resources") render();
+        if (!result.ready) {
+          notice("Cấp quyền cho đường dẫn", "Đã chọn đường dẫn. Hãy cấp quyền bộ nhớ để SenceLab có thể ghi, giải nén và đổi tên Resources tại đây.");
+          dialog.insertAdjacentHTML("beforeend", button("Cấp quyền bộ nhớ", "access", "primary full"));
+        }
+        return;
+      }
       if (event === "resource-state" || event === "resource-paths") {
         if (result.error) { notice("Đường dẫn Resources", result.error); return; }
         demoResourcePaths = result.paths || [];
@@ -1060,7 +1071,7 @@
       if (event === "import-apply") {
         applying = false;
         native.resourceState();
-        if (result.error) { notice("Chưa áp dụng được", result.error); return; }
+        if (result.error) { notice("Chưa áp dụng được", result.error); if (/quyền/i.test(result.error)) dialog.insertAdjacentHTML("beforeend", button("Cấp quyền bộ nhớ", "access", "primary full")); return; }
         if (result.category === "Map cờ") { app.pack = result.pack; dialog.close(); go("home"); }
         else { if (result.category === "Res") { activeDemoResource = app.bundles.find(x => x.localId === result.active.localId) || result.active; activeDemoResourcePath = demoResourcePaths.find(x => x.id === result.active.route) || null; } render(); }
         notice("Áp dụng thành công", (result.message || "Đã thay và xác minh tệp map.") + " Hãy tắt Shizuku và gỡ lỗi khi dùng xong."); return;

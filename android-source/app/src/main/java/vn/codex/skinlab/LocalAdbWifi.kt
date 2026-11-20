@@ -237,11 +237,12 @@ internal class LocalAdbWifi(
 
     fun isConnected(): Boolean = connected && manager.isConnected
 
-    fun resourceStore(): ResourceStore {
+    fun resourceStore(root: String = GAME_FILES): ResourceStore {
         check(isConnected()) { "Hãy kết nối ADB trước." }
+        val directory = allowedResourceRoot(root).path
         fun path(relative: String): String {
             require(relative.split('/').none { it == ".." || it == "." } && !relative.startsWith('/'))
-            return "'" + ("$GAME_FILES/$relative").replace("'", "'\\''") + "'"
+            return "'" + ("$directory/$relative").replace("'", "'\\''") + "'"
         }
         fun execute(script: String): String = manager.openStream("exec:$script").use { it.openInputStream().bufferedReader().readText() }
         fun checked(script: String) { check(execute("$script && printf SENCE_OK").endsWith("SENCE_OK")) { "ADB không thực hiện được thao tác Resources." } }
@@ -259,7 +260,7 @@ internal class LocalAdbWifi(
                     fun packet(name: String, bytes: ByteArray) {
                         output.write(name.toByteArray(Charsets.US_ASCII)); output.writeInt(Integer.reverseBytes(bytes.size)); output.write(bytes)
                     }
-                    packet("SEND", "$GAME_FILES/$relative,33200".toByteArray(Charsets.UTF_8))
+                    packet("SEND", "$directory/$relative,33200".toByteArray(Charsets.UTF_8))
                     val buffer = ByteArray(65536)
                     while (true) { val size = input.read(buffer); if (size < 0) break; packet("DATA", buffer.copyOf(size)) }
                     output.writeBytes("DONE"); output.writeInt(Integer.reverseBytes((System.currentTimeMillis() / 1000).toInt())); output.flush()

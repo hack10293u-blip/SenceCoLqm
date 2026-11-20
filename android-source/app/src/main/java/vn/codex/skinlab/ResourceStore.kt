@@ -10,6 +10,14 @@ import java.util.UUID
 import java.util.zip.ZipInputStream
 
 internal const val GAME_FILES = "/storage/emulated/0/Android/data/com.garena.game.kgvn/files"
+internal fun allowedResourceRoot(path: String): File {
+    require(path.startsWith('/')) { "Nhập đường dẫn đầy đủ." }
+    val entered = File(path).canonicalFile
+    val root = if (entered.name == "Resources") entered.parentFile ?: entered else entered
+    val bases = listOf(GAME_FILES, "/storage/emulated/0/Android/data/com.memecheat.kgvn/files").map { File(it).canonicalPath }
+    require(bases.any { root.path == it || root.path.startsWith(it + File.separator) }) { "Đường dẫn nằm ngoài thư mục files của hai gói trò chơi đã hỗ trợ." }
+    return root
+}
 internal interface ResourceStore {
     fun list(path: String): List<Pair<String, Boolean>>
     fun exists(path: String): Boolean

@@ -77,7 +77,7 @@ class SenceActivity : ComponentActivity() {
     }
     private val serviceArgs by lazy {
         Shizuku.UserServiceArgs(ComponentName(packageName, MapFileService::class.java.name))
-            .tag("map-file").processNameSuffix("map_file").version(2).daemon(false)
+            .tag("map-file").processNameSuffix("map_file").version(3).daemon(false)
     }
     private val mapConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
@@ -268,6 +268,9 @@ class SenceActivity : ComponentActivity() {
             selectedBundle = null
             chooseBundle.launch(arrayOf("*/*"))
         }
+        @JavascriptInterface fun authorizeResourcePath(route: String) = task("resource-permission") {
+            JSONObject().put("route", route).put("ready", resourceRouteReady(route)).put("paths", resourcePathList())
+        }
         @JavascriptInterface fun resourceState() = task("resource-state") {
             JSONObject().put("paths", resourcePathList()).put("active", state.getString("activeResource", null)?.let(::JSONObject))
         }
@@ -295,7 +298,7 @@ class SenceActivity : ComponentActivity() {
             val store = resourceStore(route)
             val count = if (store != null) ResourceInstaller.deleteBackups(store) else {
                 check(shizukuConnected()) { "Hãy cấp quyền bộ nhớ trước." }
-                checkNotNull(mapService).deleteResourceBackups()
+                checkNotNull(mapService).deleteResourceBackupsAt(resourceRoot(route).path)
             }
             JSONObject().put("message", "Đã xóa $count thư mục sao lưu Resources đánh số.")
         }
@@ -788,56 +791,55 @@ class SenceActivity : ComponentActivity() {
     }
 
     private fun resourcePathList(): JSONArray = JSONArray().apply {
-        val defaultReady = runCatching {
-            val store = resourceStore("default")
-            if (store != null) ResourceInstaller.canWrite(store) else mapService?.canWriteResources() == true
-        }.getOrDefault(false)
+        val defaultReady = resourceRouteReady("default")
         put(JSONObject().put("id", "default").put("name", "Liên Quân · garena").put("path", GAME_FILES).put("ready", defaultReady))
         val secondRoot = File("/storage/emulated/0/Android/data/com.memecheat.kgvn/files")
         put(JSONObject().put("id", "memecheat").put("name", "Liên Quân · memecheat").put("path", secondRoot.path)
-            .put("ready", permissionEnabled("LDPlayer trực tiếp") && probeDirectResources(secondRoot)))
+            .put("ready", resourceRouteReady("memecheat")))
         resourcePaths.all.forEach { (id, value) -> runCatching {
             val item = JSONObject(value as String)
             val direct = item.optString("type") == "direct"
-            val ready = if (direct) runCatching { probeDirectResources(resourceDirectory(item.getString("path"))) }.getOrDefault(false) else runCatching { ResourceInstaller.canWrite(SafResources(contentResolver, Uri.parse(item.getString("uri")))) }.getOrDefault(false)
+            val ready = resourceRouteReady(id)
             put(JSONObject().put("id", id).put("name", item.getString("name")).put("path", if (direct) item.getString("path") else item.getString("uri")).put("ready", ready))
         } }
     }
 
-    private fun resourceStore(route: String): ResourceStore? {
-        if (route == "memecheat") {
-            val root = resourceDirectory("/storage/emulated/0/Android/data/com.memecheat.kgvn/files")
-            check(probeDirectResources(root)) { "Đúng đường dẫn com.memecheat.kgvn, nhưng Android chưa cho SenceLab ghi trực tiếp tại đây." }
-            return DiskResources(root)
-        }
-        if (route != "default") {
-            val info = resourcePaths.getString(route, null)?.let(::JSONObject) ?: error("Hãy chọn đường dẫn đã cấp quyền.")
-            if (info.optString("type") == "direct") {
-                val root = resourceDirectory(info.getString("path"))
-                check(probeDirectResources(root)) { "Không còn quyền ghi trực tiếp tại đường dẫn đã lưu." }
-                return DiskResources(root)
-            }
-            val tree = Uri.parse(info.getString("uri"))
-            require(contentResolver.persistedUriPermissions.any { it.uri == tree && it.isWritePermission && it.isReadPermission }) { "Đường dẫn chưa có quyền ghi. Hãy chọn lại thư mục." }
-            return SafResources(contentResolver, tree)
-        }
-        if (permissionEnabled("LDPlayer trực tiếp") && probeDirectResources(File(GAME_FILES))) return DiskResources()
-        if (shizukuConnected()) return null
-        if (adbStarted && adbWifi.isConnected()) return adbWifi.resourceStore()
-        val tree = state.getString("fixTree", null)?.let(Uri::parse)
-        if (tree != null && contentResolver.persistedUriPermissions.any { it.uri == tree && it.isReadPermission && it.isWritePermission }) return SafResources(contentResolver, tree)
-        error("Hãy cấp quyền bộ nhớ. Với SAF, chọn thư mục files chứa Resources bằng nút Chọn Z/Chọn thư mục.")
+    private fun resourceRoot(route: String): File = when (route) {
+        "default" -> File(GAME_FILES)
+        "memecheat" -> File("/storage/emulated/0/Android/data/com.memecheat.kgvn/files")
+        else -> allowedResourceRoot(JSONObject(resourcePaths.getString(route, null) ?: error("Đường dẫn không còn tồn tại.")).getString("path"))
     }
 
-    private fun resourceDirectory(path: String): File {
-        require(path.trim().startsWith('/')) { "Nhập đường dẫn thư mục đầy đủ." }
-        val entered = File(path.trim()).canonicalFile
-        val root = if (entered.name == "Resources") entered.parentFile ?: entered else entered
-        val bases = listOf(GAME_FILES, "/storage/emulated/0/Android/data/com.memecheat.kgvn/files").map { File(it).canonicalPath }
-        require(bases.any { base -> root.path == base || root.path.startsWith(base + File.separator) }) { "Đường dẫn phải nằm trong files của com.garena.game.kgvn hoặc com.memecheat.kgvn." }
-        require(root.isDirectory && root.name != "Resources") { "Chọn thư mục cha chứa Resources, không chọn chính Resources." }
-        return root
+    private fun resourceStore(route: String): ResourceStore? {
+        if (route !in listOf("default", "memecheat")) {
+            val info = JSONObject(resourcePaths.getString(route, null) ?: error("Hãy chọn đường dẫn."))
+            if (info.optString("type") != "direct") {
+                val tree = Uri.parse(info.getString("uri"))
+                require(contentResolver.persistedUriPermissions.any { it.uri == tree && it.isWritePermission && it.isReadPermission }) { "Cần cấp lại quyền thư mục đã chọn." }
+                return SafResources(contentResolver, tree)
+            }
+        }
+        val root = resourceRoot(route)
+        if (probeDirectResources(root)) return DiskResources(root)
+        if (shizukuConnected() && mapService?.canWriteResourcesAt(root.path) == true) return null
+        if (adbStarted && adbWifi.isConnected()) {
+            val store = adbWifi.resourceStore(root.path)
+            if (ResourceInstaller.canWrite(store)) return store
+        }
+        val tree = state.getString("fixTree", null)?.let(Uri::parse)
+        if (route == "default" && tree != null && contentResolver.persistedUriPermissions.any { it.uri == tree && it.isReadPermission && it.isWritePermission }) {
+            val store = SafResources(contentResolver, tree)
+            if (ResourceInstaller.canWrite(store)) return store
+        }
+        error("Đã chọn đúng đường dẫn "+root.path+", nhưng SenceLab chưa có quyền ghi tại đây. Hãy cấp quyền bộ nhớ rồi chọn lại đường dẫn.")
     }
+
+    private fun resourceDirectory(path: String): File = allowedResourceRoot(path.trim())
+
+    private fun resourceRouteReady(route: String): Boolean = runCatching {
+        val store = resourceStore(route)
+        if (store != null) ResourceInstaller.canWrite(store) else mapService?.canWriteResourcesAt(resourceRoot(route).path) == true
+    }.getOrDefault(false)
 
     private fun probeDirectResources(root: File): Boolean {
         val first = File(root, "SencePermission-${UUID.randomUUID()}")
@@ -861,7 +863,7 @@ class SenceActivity : ComponentActivity() {
         val store = resourceStore(route)
         operationPhase("Đang giải nén và xác minh Resources…")
         if (store != null) file.inputStream().use { ResourceInstaller.install(store, it, replace, ::operationPhase) }
-        else ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { checkNotNull(mapService).installResources(it, replace) }
+        else ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { checkNotNull(mapService).installResourcesAt(it, replace, resourceRoot(route).path) }
     }
 
     private fun applyPack(uri: String, pack: JSONObject): JSONObject {
