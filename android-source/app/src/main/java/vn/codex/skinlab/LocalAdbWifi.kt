@@ -47,6 +47,8 @@ internal class LocalAdbWifi(
     private data class PairEndpoint(val service: String, val host: String, val port: Int)
     @Volatile private var pairingEndpoint: PairEndpoint? = null
     @Volatile private var connected = false
+    @Volatile var ldPlayerMode = false
+        private set
     @Volatile private var closed = false
     init {
         AdbPairReplyReceiver.handler = { code -> pair(code) }
@@ -168,7 +170,10 @@ internal class LocalAdbWifi(
 
     fun connect() {
         if (closed || Build.VERSION.SDK_INT < 30) return
+        val switchMode = ldPlayerMode
+        ldPlayerMode = false
         work.execute {
+            if (switchMode && manager.isConnected) { manager.disconnect(); connected = false }
             status("Đang kết nối ADB WiFi…")
             connected = runCatching {
                 (manager.isConnected || manager.connect(loopback, connectionPort())) && manager.isConnected
@@ -177,6 +182,24 @@ internal class LocalAdbWifi(
                 !connected -> "Chưa kết nối được. Bật Gỡ lỗi không dây và ghép đôi lại nếu cần."
                 canWrite() -> "ADB WiFi đã kết nối và có quyền ghi tệp map."
                 else -> "ADB WiFi đã kết nối, nhưng Android chưa cho ghi tệp map."
+            })
+        }
+    }
+
+    fun connectLdPlayer() {
+        if (closed) return
+        val switchMode = !ldPlayerMode
+        ldPlayerMode = true
+        work.execute {
+            if (switchMode && manager.isConnected) { manager.disconnect(); connected = false }
+            status("Đang kết nối ADB LDPlayer…")
+            connected = runCatching {
+                (manager.isConnected || manager.connect(loopback, 5555)) && manager.isConnected
+            }.getOrDefault(false)
+            status(when {
+                !connected -> "Chưa kết nối được LDPlayer. Bật ADB debugging: Open local connection trong cài đặt giả lập rồi thử lại."
+                canWrite() -> "ADB LDPlayer đã kết nối và có quyền ghi tệp map."
+                else -> "ADB LDPlayer đã kết nối, nhưng chưa có quyền ghi tệp map."
             })
         }
     }
@@ -213,6 +236,41 @@ internal class LocalAdbWifi(
     }
 
     fun isConnected(): Boolean = connected && manager.isConnected
+
+    fun disconnect() {
+        connected = false
+        pairingEndpoint = null
+        work.execute { runCatching { manager.disconnect() } }
+    }
+
+    @Synchronized fun fixData(file: File) {
+        check(isConnected()) { "Hãy kết nối ADB WiFi hoặc ADB LDPlayer." }
+        val wrapped = validateExtraArchive(file)
+        val archive = "/data/local/tmp/sencelab-${java.util.UUID.randomUUID()}.zip"
+        fun command(script: String): String = manager.openStream("exec:$script")
+            .use { it.openInputStream().bufferedReader().readText() }
+        try {
+            manager.openStream("exec:head -c ${file.length()} > '$archive' && printf done").use { stream ->
+                file.inputStream().use { it.copyTo(stream.openOutputStream()) }
+                stream.openOutputStream().flush()
+                check(stream.openInputStream().bufferedReader().readText() == "done") { "Không chuyển được ZIP vào ADB." }
+            }
+            val parent = "/storage/emulated/0/Android/data/com.garena.game.kgvn/files"
+            val stage = "$parent/SenceLabExtraPending"
+            val source = if (wrapped) "$stage/Extra" else stage
+            val target = "2022.V3/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle"
+            val script = "if [ -e '$parent/Extra1' ]; then printf 'Extra1 đã tồn tại'; " +
+                "elif [ ! -d '$parent/Extra' ]; then printf 'Không thấy Extra'; " +
+                "elif mkdir '$stage'; then " +
+                "if unzip -oq '$archive' -d '$stage' && [ -s '$source/$target' ] && mv '$parent/Extra' '$parent/Extra1'; then " +
+                "if mv '$source' '$parent/Extra'; then printf FIX_OK; else mv '$parent/Extra1' '$parent/Extra'; printf 'Không thay được Extra'; fi; " +
+                "else printf 'Không giải nén hoặc đổi tên được Extra'; fi; rm -rf '$stage'; else printf 'Không tạo được thư mục tạm'; fi"
+            val result = command(script)
+            check(result.trim() == "FIX_OK") { "Fix Data qua ADB thất bại: $result" }
+        } finally {
+            runCatching { command("rm -f '$archive'") }
+        }
+    }
 
     @Synchronized fun canWrite(): Boolean = isConnected() && runCatching {
         manager.openStream("exec:if [ -f '$GAME_MAP_PATH' ] && [ -r '$GAME_MAP_PATH' ] && [ -w '$GAME_MAP_PATH' ]; then printf yes; fi")

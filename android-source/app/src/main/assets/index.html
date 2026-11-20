@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 2.0.0</title>
+  <title>SenceLab 2.0.7</title>
   <style>
     :root {
       color-scheme: dark;
@@ -267,6 +267,37 @@
       dialog[open] { animation: dialog-enter 180ms ease-out; }
     }
     progress { accent-color: var(--mint); border-radius: 8px; height: 8px; }
+    .permission-summary { padding: 23px; min-height: 185px; margin: 18px 0; background: linear-gradient(120deg, var(--panel), color-mix(in srgb, var(--lilac) 16%, var(--panel))); }
+    .permission-summary h2 { font-size: 24px; margin: 12px 0; }
+    .permission-summary .permission-detail { font-size: 14px; gap: 10px; }
+    @media (prefers-reduced-motion: no-preference) {
+      .permission-summary { animation: content-enter 220ms ease-out both; }
+      .memory-method { animation: content-enter 180ms ease-out both; }
+      .search { transition: border-color 160ms ease, box-shadow 160ms ease; }
+    }
+    .permission-status { min-height: 95px; padding: 24px; display: flex; align-items: center; gap: 13px; margin: 12px 0; font-size: 17px; }
+    .status-dot { width: 13px; height: 13px; border-radius: 50%; flex: none; background: #c34b60; }
+    .status-dot.green { background: #2eaa7a; box-shadow: 0 0 0 5px #2eaa7a18; }
+    .status-dot.yellow { background: #d5a12e; box-shadow: 0 0 0 5px #d5a12e18; }
+    .status-dot.red { box-shadow: 0 0 0 5px #c34b6018; }
+    .memory-help-copy { overflow-wrap: anywhere; word-break: break-word; max-width: 100%; }
+    dialog { overflow-x: hidden; }
+    .reset-link { position: absolute; z-index: 2; right: 15px; top: 15px; background: var(--panel); border: 1px solid var(--border); border-radius: 20px; padding: 5px 10px; color: var(--muted); font-size: 12px; }
+    .support-row small b { color: var(--text); font-weight: 800; }
+    .cover::before { content: ''; pointer-events: none; position: absolute; z-index: 2; inset: -90% -40%; background: linear-gradient(115deg, transparent 42%, #ffffff20 48%, #ffffff35 50%, transparent 57%); transform: translateX(-75%); }
+    @media (prefers-reduced-motion: no-preference) {
+      .cover::before { animation: cover-sheen 8s ease-in-out infinite; }
+      @keyframes cover-sheen { 0%, 65% { transform: translateX(-75%); } 90%, 100% { transform: translateX(75%); } }
+    }
+    .permission-status { flex-wrap: wrap; }
+    .permission-status > strong { flex: 1; min-width: 0; }
+    .permission-status > button { flex-basis: 100%; }
+    @media (prefers-reduced-motion: no-preference) {
+      .status-dot { animation: status-pulse 2.8s ease-in-out infinite; }
+      .status-dot.yellow { animation-duration: 1.9s; }
+      .status-dot.red { animation-duration: 3.5s; }
+      @keyframes status-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .58; transform: scale(.85); } }
+    }
 </style>
 </head>
 <body>
@@ -314,6 +345,11 @@
     let applying = false;
     let memoryStatus = "Đang kiểm tra quyền bộ nhớ…";
     let memoryDetails = null;
+    let lastHomeBack = 0;
+    let awaitingMemory = false;
+    let resetTimer = null;
+    let cacheBytes = 0;
+    const cacheLabel = () => (cacheBytes / 1048576).toFixed(1) + " MB";
     let historyCollapsed = false;
     try { usedMaps = JSON.parse(localStorage.getItem("sence.usedMaps") || "[]"); } catch {}
     const app = {
@@ -338,10 +374,12 @@
       ["settings", "Cài đặt chung", "settings"]
     ];
     const memoryMethods = [
+
       ["Shizuku", "Bật Shizuku rồi cấp quyền cho SenceLab.", "link", "lilac", "Cài Shizuku và khởi động bằng Gỡ lỗi không dây hoặc qua máy tính. Sau đó mở lại SenceLab và cho phép khi Shizuku yêu cầu cấp quyền."],
       ["ADB WiFi", "Ghép đôi bằng mã ngay trong SenceLab.", "wifi", "mint", "Bật Gỡ lỗi không dây, chọn Ghép nối thiết bị bằng mã rồi nhập mã từ thông báo SenceLab. Quay lại bấm Bắt đầu."],
-      ["SAF V1", "Chọn thư mục đích qua trình chọn tệp Android.", "file", "amber", "SAF dùng trình chọn thư mục của Android. Chọn một thư mục mà Android cho phép truy cập rồi xác nhận. Trên các phiên bản Android mới, trình chọn thư mục chuẩn hạn chế quyền vào Android/data của ứng dụng khác."],
-      ["SAF V2", "Thử cấp lại quyền qua trình chọn tệp Android.", "file", "amber", "Mở lại trình chọn tệp Android để cấp quyền cho đúng tệp map. Cả hai mục SAF đều tuân theo giới hạn của bộ chọn tệp trên thiết bị."],
+      ["SAF V1", "Chọn Android/data/com.garena.game.kgvn/files rồi xác nhận.", "file", "amber", "Chọn thư mục /storage/emulated/0/Android/data/com.garena.game.kgvn/files rồi bấm Sử dụng thư mục này. App tự tìm Extra/2022.V3/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle. Trên các phiên bản Android mới, trình chọn thư mục chuẩn hạn chế quyền vào Android/data của ứng dụng khác."],
+      ["SAF V2", "Chọn đúng tệp scene_artist_autochess_01.assetbundle.", "file", "amber", "Chọn tệp /storage/emulated/0/Android/data/com.garena.game.kgvn/files/Extra/2022.V3/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle. Bấm tên tệp để xác nhận. SAF V2 chọn tệp, còn SAF V1 chọn thư mục. Cả hai mục SAF đều tuân theo giới hạn của bộ chọn tệp trên thiết bị."],
+      ["LDPlayer trực tiếp", "Cấp quyền bộ nhớ và ghi thẳng tệp trên Android 9.", "file", "mint", "Cho phép SenceLab truy cập bộ nhớ. App ghi trực tiếp tệp map tại đường dẫn cố định trên Android 9 trở xuống."],
     ];
     const contactLinks = {
       "community-telegram": "https://t.me/ttt_cth",
@@ -370,7 +408,9 @@
       button(actionLabel, action, "secondary") + '</div>';
 
     function go(page, useBack = false) {
+      lastHomeBack = 0;
       if (useBack) app.origins[page] = app.page;
+      if (page === "settings") native.cacheSize();
       if (page === "catalog" && !driveEntries.length && !driveStatus) refreshDrive();
       app.page = page;
       app.feedback = "";
@@ -428,32 +468,32 @@
             '" data-action="delete-bundle-' + index + '">Xóa</button></li>').join("") + '</ul>'
           : '<p class="muted">Chưa nhập tệp AssetBundle.</p>'),
       permissions: () => title("Quyền", "Thiết lập quyền trước khi áp dụng map.") +
-        row("Trạng thái quyền", memoryStatus, "link", "mint") +
+        permissionSummary() +
         row("Cấp quyền bộ nhớ", "Chọn hoặc đổi phương thức truy cập", "wrench", "lilac", "access") +
         row("Kiểm tra quyền", "Kiểm tra quyền ghi vào tệp đích", "info", "mint", "permission-check") +
         row("Kiểm tra tệp đang dùng", "Đối chiếu nội dung bundle trên máy", "file", "lilac", "verify-map") +
         row("Fix Data", "Bấm vào đây khi đã kết nối nhưng chưa có quyền ghi!", "wrench", "pink", "fix-data") +
         row("Hướng dẫn cấp quyền", "Xem các bước thiết lập", "info", "pink", "guide") +
-        (app.mode ? button("Đặt lại lựa chọn", "permission-reset", "secondary full") : ""),
+        button("Đặt lại tất cả quyền", "permission-reset", "secondary full"),
       access: () => title("Cấp quyền bộ nhớ", "Chọn cách cấp quyền để SenceLab ghi file vào trò chơi.") +
         '<div class="memory-methods">' + memoryMethods.map(([name, detail, glyph, color], index) =>
           '<div class="memory-method">' +
           row(name, detail, glyph, color, "memory-" + index, app.mode === name) +
           '<button class="icon-button" style="--accent:var(--' + color + ')" aria-label="Hướng dẫn ' + name +
           '" data-action="help-memory-' + index + '">' + icon("alert") + '</button></div>').join("") + '</div>' +
-        '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>' +
-        button("Xong", "back", "primary full"),
+        '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>',
       settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.0.0</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.0.7</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
-        group("Tiện ích", row("Cấp quyền bộ nhớ", memoryStatus, "link", "mint", "access")) +
+        group("Tiện ích", row("Tính năng chưa ra mắt", "Đang phát triển", "info", "lilac")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v2.0.0 · SenceLab", "Kiểm tra", "version-check") +
-          supportRow("Xóa bộ nhớ đệm (Cache)", "Dọn ảnh và tệp tạm", "Xóa Cache", "cache-confirm")) +
+          supportRow("Phiên bản ứng dụng", "v2.0.7 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Xóa bộ nhớ đệm (Cache)", "Ảnh và tệp tạm · <b>" + cacheLabel() + "</b>", "Xóa", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
-          row("YouTube", "Video hướng dẫn và cập nhật", "play", "pink", "community-youtube")),
+          row("YouTube", "Video hướng dẫn và cập nhật", "play", "pink", "community-youtube")) +
+        button("Đặt lại", "reset-app", "secondary restore-button full"),
       guide: () => '<h1>Hướng dẫn</h1><div class="guide-list">' +
         guides.map(([name, summary, , image], index) =>
           '<button class="card guide-card" data-action="guide-item-' + index + '">' +
@@ -489,15 +529,21 @@
     function permissionDetails() {
       if (!memoryDetails) return '<p class="muted">' + escapeText(memoryStatus) + '</p>';
       return '<dl class="permission-detail">' +
-        [["Shizuku", memoryDetails.shizuku], ["ADB WiFi", memoryDetails.adb], ["SAF", memoryDetails.saf]]
+        (memoryDetails.methods || []).map(method => [method.name, method.ready ? "Sẵn sàng" : method.connected ? "Đã kết nối, chưa ghi được" : "Chưa kết nối"])
           .map(([name, status]) => '<div><dt>' + name + '</dt><dd' + (status === "Sẵn sàng" ? ' class="ready"' : '') +
             '>' + escapeText(status) + '</dd></div>').join("") + '</dl>';
     }
 
     function homePermissions() {
-      return row("Cấp quyền bộ nhớ", memoryDetails?.ready ? "Có quyền ghi tệp map" : "Xem trạng thái quyền", "link", "lilac", "access") +
-        (memoryDetails?.canFix ? button("Fix", "fix-data", "secondary restore-button full") : "") +
-        permissionDetails();
+      return permissionSummary(true) +
+        (memoryDetails?.canFix ? button("Fix", "fix-data", "secondary restore-button full") : "");
+    }
+
+    function permissionSummary(includePicker = false) {
+      const color = memoryDetails?.statusColor || "red";
+      return '<section class="card permission-status" role="status"><span class="status-dot ' + color +
+        '"></span><strong>' + escapeText(memoryDetails?.summary || "Chưa có quyền bộ nhớ") + '</strong>' +
+        (includePicker && color !== "green" ? button("Chọn quyền bộ nhớ", "access", "secondary full") : "") + '</section>';
     }
 
     function showPack(pack) {
@@ -598,6 +644,7 @@
         return;
       }
       if (action.startsWith("memory-")) {
+        awaitingMemory = true;
         app.mode = memoryMethods[Number(action.slice(7))][0];
         render();
         screen.querySelector('[data-action="' + action + '"]').focus();
@@ -607,10 +654,29 @@
       }
 
       switch (action) {
+        case "reset-app": {
+          native.beginReset();
+          const readyAt = Date.now() + 5000;
+          dialog.innerHTML = '<h2 id="dialog-title">Đặt lại ứng dụng?</h2><p>Xóa toàn bộ dữ liệu SenceLab, gồm tài khoản đã đăng nhập, tệp đã nhập, lịch sử, cài đặt và bản sao lưu trong app. Dữ liệu trò chơi đã thay sẽ vẫn ở trên máy. Ứng dụng sẽ đóng sau khi đặt lại.</p><div class="dialog-actions">' +
+            button("Hủy", "close", "secondary") + button("Xóa tất cả (5s)", "reset-confirm", "secondary restore-button", true) + '</div>';
+          if (!dialog.open) dialog.showModal();
+          clearInterval(resetTimer);
+          resetTimer = setInterval(() => {
+            const confirm = dialog.querySelector('[data-action="reset-confirm"]');
+            if (!confirm || !dialog.open) { clearInterval(resetTimer); return; }
+            const seconds = Math.max(0, Math.ceil((readyAt - Date.now()) / 1000));
+            confirm.textContent = seconds ? "Xóa tất cả (" + seconds + "s)" : "Xóa tất cả";
+            confirm.disabled = seconds > 0;
+            if (!seconds) clearInterval(resetTimer);
+          }, 100);
+          break;
+        }
+        case "reset-confirm": native.resetApp(); break;
         case "history-toggle": historyCollapsed = !historyCollapsed; render(); break;
         case "fix-data":
-          notice("Đã kết nối nhưng chưa có quyền ghi?", "Fix Data thử tạo lại dữ liệu Extra để xử lý lỗi chưa ghi được tệp sau khi kết nối. Hãy đóng trò chơi trước. App tải extra.zip, giữ dữ liệu cũ tại Extra1 rồi thay thư mục Extra. Thao tác hiện dùng Shizuku và cần quyền sửa thư mục. Nếu Android chặn thao tác này, app sẽ báo lỗi.", "fix-data-confirm");
+          notice("Đã kết nối nhưng chưa có quyền ghi?", "Fix Data thử tạo lại dữ liệu Extra để xử lý lỗi chưa ghi được tệp sau khi kết nối. Hãy đóng trò chơi trước. App tải extra.zip, giữ dữ liệu cũ tại Extra1 rồi thay thư mục Extra. Có thể dùng Shizuku, ADB WiFi, ADB LDPlayer hoặc SAF có quyền sửa thư mục files. Nếu Android chặn thao tác này, app sẽ báo lỗi.", "fix-data-confirm");
           break;
+        case "fix-folder": native.fixFolder(); break;
         case "fix-data-confirm":
           notice("Fix Data", "Đang tải và giải nén dữ liệu. Vui lòng chờ…");
           native.fixData();
@@ -629,6 +695,7 @@
           native.checkVersion();
           break;
         case "cache-confirm":
+          native.cacheSize();
           dialog.innerHTML = '<h2 id="dialog-title">Xóa bộ nhớ đệm?</h2><p>Xóa ảnh lưu đệm và tệp tạm của ứng dụng. Các tệp đã nhập và bản sao lưu vẫn được giữ.</p><div class="dialog-actions">' +
             button("Hủy", "close", "secondary") + button("Xóa Cache", "cache-clear") + '</div>';
           dialog.showModal();
@@ -648,9 +715,14 @@
           native.verifyInstalled();
           break;
         case "permission-reset":
+          dialog.innerHTML = '<h2 id="dialog-title">Đặt lại tất cả quyền?</h2><p>Ngắt kết nối ADB, bỏ quyền SAF đã lưu và đặt lại truy cập Shizuku, LDPlayer trong SenceLab. Lần dùng tiếp theo cần chọn và cấp lại quyền. Các công tắc hệ thống được quản lý trong Cài đặt Android.</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Đặt lại", "permissions-reset-confirm", "secondary restore-button") + '</div>';
+          dialog.showModal();
+          break;
+        case "permissions-reset-confirm":
+          native.resetPermissions();
           app.mode = "";
-          app.feedback = "Đã đặt lại lựa chọn cấp quyền.";
-          render();
+          awaitingMemory = false;
+          notice("Đặt lại quyền", "Đang đặt lại quyền truy cập…");
           break;
         case "access": case "guide": go(action, true); break;
         case "back": back(); break;
@@ -669,11 +741,11 @@
           break;
         case "admin":
           dialog.innerHTML = '<h2 id="dialog-title">Admin Login</h2>' + (app.admin
-            ? '<p>Đã đăng nhập Admin.</p><div class="dialog-actions">' + button("Đăng xuất", "admin-logout", "secondary") + '</div>'
+            ? '<p>Đã đăng nhập Admin.</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Đăng xuất", "admin-logout", "secondary") + button("Đặt lại", "reset-app", "secondary restore-button") + '</div>'
             : '<form id="admin-form">' +
               '<label class="pass-label" for="admin-user">Tài khoản</label><input class="search" id="admin-user" name="username" autocomplete="username" required>' +
               '<label class="pass-label" for="admin-password">Mật khẩu</label><input class="search" id="admin-password" name="password" type="password" autocomplete="current-password" required>' +
-              '<p id="admin-error" class="pass-error" role="alert" hidden></p><div class="dialog-actions"><button type="submit" class="primary">Đăng nhập</button></div></form>');
+              '<p id="admin-error" class="pass-error" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="secondary" data-action="close">Hủy</button><button type="submit" class="primary">Đăng nhập</button></div></form>');
           dialog.showModal();
           break;
         case "admin-logout":
@@ -704,7 +776,7 @@
           applyPack({ ...app.pending, enteredPass: dialog.querySelector("#map-pass")?.value.trim() });
           break;
         case "restore": {
-          dialog.innerHTML = '<h2 id="dialog-title">Gỡ mod?</h2><p>SenceLab sẽ tải map gốc từ Mapgoc và thay vào tệp của trò chơi.</p><div class="dialog-actions">' +
+          dialog.innerHTML = '<h2 id="dialog-title">Gỡ mod?</h2><p>Khôi phục bản đồ mặc định của trò chơi và gỡ bản mod đang dùng. Hãy đóng trò chơi trước khi tiếp tục.</p><div class="dialog-actions">' +
             button("Hủy", "close", "secondary") + button("Gỡ mod", "confirm-restore") + '</div>';
           dialog.showModal();
           break;
@@ -712,7 +784,7 @@
         case "confirm-restore":
           if (applying) break;
           applying = true;
-          dialog.innerHTML = '<h2 id="dialog-title">Đang khôi phục…</h2><p>Đang tải và xác minh tệp gốc từ Mapgoc.</p><progress aria-label="Đang khôi phục"></progress>';
+          dialog.innerHTML = '<h2 id="dialog-title">Đang khôi phục…</h2><p>Đang tải dữ liệu bản đồ mặc định…</p><progress aria-label="Đang khôi phục"></progress>';
           native.restore();
           break;
         case "close": app.pending = null; dialog.close(); break;
@@ -725,18 +797,38 @@
     dialog.addEventListener("close", () => { delete dialog.dataset.awaiting; });
     window.senceBack = () => {
       if (dialog.open) {
+        lastHomeBack = 0;
         if (!applying) {
           app.pending = null;
           dialog.close();
         }
         return true;
       }
-      if (app.page === "home") return false;
+      if (app.page === "home") {
+        const now = Date.now();
+        if (lastHomeBack && now - lastHomeBack < 2000) return false;
+        lastHomeBack = now;
+        native.backHint();
+        return true;
+      }
+      lastHomeBack = 0;
       if (tabs.some(([page]) => page === app.page)) go("home");
       else back();
       return true;
     };
     let releaseUrl = "";
+    let pendingUpdate = null;
+    function showPendingUpdate() {
+      if (!pendingUpdate || dialog.open || applying) return;
+      const update = pendingUpdate;
+      pendingUpdate = null;
+      releaseUrl = update.url;
+      dialog.innerHTML = '<h2 id="dialog-title">Có phiên bản mới</h2><p>' + escapeText(update.message) +
+        ' Bạn có muốn cập nhật ngay?</p><div class="dialog-actions">' + button("Để sau", "close", "secondary") +
+        button("Cập nhật", "release-download") + '</div>';
+      dialog.showModal();
+    }
+    dialog.addEventListener("close", () => setTimeout(showPendingUpdate, 0));
     function showAdbPairing() {
       dialog.innerHTML = '<div class="memory-help-heading">' + symbol("wifi", "mint") +
         '<h2 id="dialog-title">ADB WiFi</h2></div><p>Ghép đôi bằng mã ngay trong SenceLab.</p>' +
@@ -779,12 +871,30 @@
       if (!dialog.open) dialog.showModal();
     }
     window.senceResult = (event, result) => {
+      if (event === "permissions-reset") {
+        notice("Đặt lại quyền", result.message || result.error);
+        native.checkMemory();
+        return;
+      }
+      if (event === "auto-version") {
+        if (result.url && !result.error) { pendingUpdate = result; showPendingUpdate(); }
+        return;
+      }
+      if (event === "cache-size") { cacheBytes = result.bytes || 0; if (app.page === "settings") render(); return; }
+      if (event === "operation-phase") {
+        if (dialog.open && dialog.querySelector("progress")) {
+          let label = dialog.querySelector("#file-download-progress p") || dialog.querySelector("p");
+          if (label) label.textContent = result.message;
+          dialog.querySelector("progress").removeAttribute("value");
+        } return;
+      }
       if (event === "file-progress") {
         if (!dialog.open || !dialog.querySelector('progress') && !dialog.textContent.includes("Đang tải và giải nén")) return;
         let meter = dialog.querySelector("#file-download-progress");
         if (!meter) {
           meter = document.createElement("div");
           meter.id = "file-download-progress";
+          dialog.querySelectorAll("progress").forEach(bar => bar.remove());
           meter.setAttribute("role", "status");
           meter.innerHTML = '<p></p><progress max="100" style="width:100%"></progress>';
           dialog.append(meter);
@@ -792,15 +902,18 @@
         const bar = meter.querySelector("progress");
         if (result.percent >= 0) bar.value = result.percent;
         else bar.removeAttribute("value");
-        meter.querySelector("p").textContent = result.percent >= 0 ? "Đang tải " + result.percent + "%" : "Đã tải " + (result.bytes / 1048576).toFixed(1) + " MB";
+        meter.querySelector("p").textContent = result.percent === 100 ? "Tải xong · đang xử lý và xác minh tệp…" : result.percent >= 0 ? "Đang tải " + result.percent + "%" : "Đã tải " + (result.bytes / 1048576).toFixed(1) + " MB";
         return;
       }
+      if (event === "fix-folder") { notice("Quyền thư mục", result.message || result.error); return; }
       if (event === "fix-data") {
         notice("Fix Data", result.message || result.error || "Không sửa được dữ liệu.");
+        if (result.needsFolder) dialog.insertAdjacentHTML("beforeend", button("Cấp quyền thư mục files", "fix-folder", "secondary full"));
         native.checkMemory();
         return;
       }
       if (event === "cache") {
+        native.cacheSize();
         notice("Bộ nhớ đệm", result.message || result.error || "Không xóa được bộ nhớ đệm.");
         return;
       }
@@ -823,6 +936,12 @@
       if (event === "permission") {
         memoryStatus = result.message || result.error || "Chưa có quyền ghi.";
         if (result.shizuku && result.adb && result.saf) memoryDetails = result;
+        if (awaitingMemory && result.selectedReady && result.selectedMethod === app.mode) {
+          awaitingMemory = false;
+          if (dialog.open) dialog.close();
+          go("home");
+          return;
+        }
         if (dialog.open && dialog.dataset.awaiting === "permission") {
           delete dialog.dataset.awaiting;
           dialog.innerHTML = '<h2 id="dialog-title">Kiểm tra quyền</h2>' +
@@ -911,12 +1030,14 @@
         go("home");
         app.feedback = result.message || (event === "apply" ? "Đã ghi và xác minh tệp đích." : "Đã khôi phục tệp gốc.");
         render();
+        notice(event === "apply" ? "Đã áp dụng map" : "Đã gỡ mod", "Hoàn tất. Trước khi mở ứng dụng ngân hàng, hãy dừng Shizuku, tắt Gỡ lỗi USB, Gỡ lỗi không dây và Tùy chọn nhà phát triển trong Cài đặt Android. Một số ứng dụng ngân hàng kiểm tra các thiết lập này.");
       }
     };
     nav.innerHTML = tabs.map(([page, label, glyph]) =>
       '<button data-action="tab-' + page + '"><span>' + icon(glyph) + '</span><span>' + label + '</span></button>').join("");
     render();
     native.checkMemory();
+    native.autoVersion();
     refreshDrive();
   </script>
 </body>

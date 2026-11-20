@@ -58,6 +58,15 @@ class SenceActivity : ComponentActivity() {
         } }
     }
     private var adbStarted = false
+    @Volatile private var resetAllowedAt = Long.MAX_VALUE
+    private val legacyStoragePermission = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        checkPermissionState()
+    }
+    private fun permissionEnabled(name: String): Boolean = !state.getBoolean("permissionsReset", false) ||
+        state.getStringSet("enabledMethods", emptySet()).orEmpty().contains(name)
+    private fun directWritable(): Boolean = permissionEnabled("LDPlayer trực tiếp") && Build.VERSION.SDK_INT <= 28 &&
+        checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
+        runCatching { MapFileService().canWrite() }.getOrDefault(false)
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         adbWifi.discoverPairing()
     }
@@ -102,14 +111,48 @@ class SenceActivity : ComponentActivity() {
         val uri = result.data?.data
         if (result.resultCode != Activity.RESULT_OK || uri == null) return@registerForActivityResult
         task("permission") {
-            require(uri.authority == "com.android.externalstorage.documents" &&
-                DocumentsContract.getDocumentId(uri) == targetDocument) {
+            val documentMatches = uri.authority == "com.android.externalstorage.documents" && runCatching { DocumentsContract.getDocumentId(uri) == targetDocument }.getOrDefault(false)
+            val fileMatches = runCatching { contentResolver.openFileDescriptor(uri, "rw")?.use {
+                val path = android.system.Os.readlink("/proc/self/fd/${it.fd}")
+                path == GAME_MAP_PATH || (path.startsWith("/mnt/") && path.endsWith(GAME_MAP_PATH.removePrefix("/storage/emulated/0")))
+            } == true }.getOrDefault(false)
+            require(documentMatches || fileMatches) {
                 "Tệp đã chọn không đúng đường dẫn map của Liên Quân."
             }
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             contentResolver.takePersistableUriPermission(uri, flags)
-            check(state.edit().putString("target", uri.toString()).commit())
-            JSONObject().put("message", "Đã lưu quyền SAF cho đúng tệp map.")
+            check(state.edit().putString("target", uri.toString()).putString("saf2", uri.toString()).commit())
+            runOnUiThread { checkPermissionState() }
+            JSONObject().put("message", "Đã lưu quyền SAF V2 cho đúng tệp map.")
+        }
+    }
+
+    private val chooseFixFolder = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            task("fix-folder") {
+                require(uri.authority == "com.android.externalstorage.documents" &&
+                    DocumentsContract.getTreeDocumentId(uri) == "primary:Android/data/com.garena.game.kgvn/files") {
+                    "Hãy chọn đúng thư mục Android/data/com.garena.game.kgvn/files."
+                }
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                check(state.edit().putString("fixTree", uri.toString()).commit())
+                JSONObject().put("message", "Đã cấp quyền thư mục. Bấm Fix Data để tiếp tục.")
+            }
+        }
+    }
+
+    private val chooseSafTree = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
+        if (tree != null) task("permission") {
+            val id = DocumentsContract.getTreeDocumentId(tree)
+            require(tree.authority == "com.android.externalstorage.documents" && targetDocument.startsWith("$id/") &&
+                id.startsWith("primary:Android/data/com.garena.game.kgvn/files")) { "Chọn thư mục files hoặc thư mục chứa tệp map bên trong." }
+            contentResolver.takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            val target = DocumentsContract.buildDocumentUriUsingTree(tree, targetDocument)
+            contentResolver.openFileDescriptor(target, "rw")?.use { } ?: error("Không mở được quyền ghi tệp map.")
+            check(state.edit().putString("target", target.toString()).putString("saf1", target.toString()).commit())
+            if (id == "primary:Android/data/com.garena.game.kgvn/files") state.edit().putString("fixTree", tree.toString()).apply()
+            runOnUiThread { checkPermissionState() }
+            JSONObject().put("message", "Đã cấp quyền SAF V1 cho tệp map.")
         }
     }
 
@@ -177,6 +220,38 @@ class SenceActivity : ComponentActivity() {
     }
 
     inner class Bridge {
+        @JavascriptInterface fun backHint() = runOnUiThread {
+            android.widget.Toast.makeText(this@SenceActivity, "Bấm Trở về lần nữa để thoát", android.widget.Toast.LENGTH_SHORT).show()
+        }
+        @JavascriptInterface fun resetPermissions() = task("permissions-reset") {
+            check(state.edit().putBoolean("permissionsReset", true).putStringSet("enabledMethods", emptySet())
+                .remove("target").remove("saf1").remove("saf2").remove("fixTree").remove("selectedPermission").commit())
+            contentResolver.persistedUriPermissions.forEach { grant ->
+                var flags = 0
+                if (grant.isReadPermission) flags = flags or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                if (grant.isWritePermission) flags = flags or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                runCatching { contentResolver.releasePersistableUriPermission(grant.uri, flags) }
+            }
+            if (adbStarted) adbWifi.disconnect()
+            adbStarted = false
+            runOnUiThread {
+                if (binding || mapService != null) runCatching { Shizuku.unbindUserService(serviceArgs, mapConnection, true) }
+                binding = false
+                mapService = null
+                checkPermissionState()
+            }
+            JSONObject().put("message", "Đã đặt lại quyền truy cập của SenceLab. Hãy chọn và cấp lại phương thức khi cần.")
+        }
+        @JavascriptInterface fun autoVersion() = task("auto-version") { latestRelease() }
+        @JavascriptInterface fun beginReset() { resetAllowedAt = android.os.SystemClock.elapsedRealtime() + 5000 }
+        @JavascriptInterface fun resetApp() = runOnUiThread {
+            if (android.os.SystemClock.elapsedRealtime() < resetAllowedAt) return@runOnUiThread
+            resetAllowedAt = Long.MAX_VALUE
+            getSystemService(android.app.ActivityManager::class.java).clearApplicationUserData()
+        }
+        @JavascriptInterface fun cacheSize() = task("cache-size") {
+            JSONObject().put("bytes", cacheDir.walkTopDown().filter { it.isFile }.sumOf { it.length() })
+        }
         @JavascriptInterface fun active(): String = state.getString("pack", "") ?: ""
         @JavascriptInterface fun setTheme(dark: Boolean) = runOnUiThread { setBarTheme(dark) }
 
@@ -185,10 +260,8 @@ class SenceActivity : ComponentActivity() {
                 emit("cache", JSONObject().put("error", "Không xóa được bộ nhớ đệm WebView."))
             }.onSuccess {
                 task("cache") {
-                    val temporary = cacheDir.listFiles()?.filter {
-                        it.isFile && it.name.startsWith("replacement") && it.extension == "bundle"
-                    }.orEmpty()
-                    check(temporary.all { it.delete() || !it.exists() }) { "Chưa xóa được một số tệp tạm." }
+                    val temporary = cacheDir.listFiles().orEmpty()
+                    check(temporary.all { it.deleteRecursively() || !it.exists() }) { "Chưa xóa được một số tệp tạm." }
                     JSONObject().put("message", "Đã xóa bộ nhớ đệm.")
                 }
             }
@@ -238,21 +311,30 @@ class SenceActivity : ComponentActivity() {
         @JavascriptInterface fun applyMap(data: String) = task("apply") {
             val shizukuConnected = shizukuConnected()
             val adbConnected = adbStarted && adbWifi.isConnected()
-            if (!shizukuConnected && !adbConnected) return@task JSONObject()
-                .put("error", "Hãy kết nối Shizuku hoặc ADB WiFi trong Cấp quyền bộ nhớ trước.")
+            val target = writableTarget()
+            if (target == null && !shizukuConnected && !adbConnected) return@task JSONObject()
+                .put("error", "Hãy cấp quyền bằng Shizuku, ADB WiFi, ADB LDPlayer hoặc SAF trong Cấp quyền bộ nhớ.")
                 .put("permissionAction", "access")
-            val target = when {
-                shizukuConnected && shizukuWritable() -> shizukuTarget
-                adbConnected && adbWifi.canWrite() -> adbTarget
-                else -> return@task JSONObject().put("error", "Đã kết nối nhưng chưa có quyền ghi. Đóng trò chơi rồi thử Fix Data.")
-                    .put("permissionAction", "fix-data")
-            }
+            if (target == null) return@task JSONObject().put("error", "Đã kết nối nhưng chưa có quyền ghi. Đóng trò chơi rồi thử Fix Data.")
+                .put("permissionAction", "fix-data")
             applyPack(target, JSONObject(data))
         }
 
         @JavascriptInterface fun requestMemory(mode: String) = runOnUiThread {
+            val enabled = state.getStringSet("enabledMethods", emptySet()).orEmpty().toMutableSet().apply { add(mode) }
+            state.edit().putStringSet("enabledMethods", enabled).apply()
+            state.edit().putString("selectedPermission", mode).apply()
             when (mode) {
                 "Shizuku" -> requestShizuku()
+                "LDPlayer trực tiếp" -> {
+                    if (Build.VERSION.SDK_INT <= 28) legacyStoragePermission.launch(arrayOf(
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                    else emit("permission", JSONObject().put("message", "Ghi trực tiếp dành cho Android 9 trở xuống. Hãy dùng Shizuku, ADB WiFi hoặc SAF trên máy này."))
+                }
+                "ADB LDPlayer" -> {
+                    adbStarted = true
+                    adbWifi.connectLdPlayer()
+                }
                 "ADB WiFi" -> {
                     adbStarted = true
                     if (Build.VERSION.SDK_INT >= 33 &&
@@ -260,7 +342,8 @@ class SenceActivity : ComponentActivity() {
                         notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                     } else adbWifi.discoverPairing()
                 }
-                "SAF V1", "SAF V2" -> chooseTarget.launch(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                "SAF V1" -> chooseSafTree.launch(Uri.parse("content://com.android.externalstorage.documents/document/primary%3AAndroid%2Fdata%2Fcom.garena.game.kgvn%2Ffiles"))
+                "SAF V2" -> chooseTarget.launch(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "*/*"
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
@@ -270,15 +353,29 @@ class SenceActivity : ComponentActivity() {
         }
 
         @JavascriptInterface fun checkMemory() = checkPermissionState()
+        @JavascriptInterface fun fixFolder() = runOnUiThread { chooseFixFolder.launch(null) }
         @JavascriptInterface fun fixData() = task("fix-data") {
-            val service = mapService ?: error("Hãy bật Shizuku và cấp phép SenceLab trước khi Fix Data.")
+            val service = mapService?.takeIf { shizukuConnected() }
+            val adb = adbStarted && adbWifi.isConnected()
+            val direct = directWritable()
+            val tree = state.getString("fixTree", null)?.let(Uri::parse)?.takeIf { uri ->
+                contentResolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission && it.isWritePermission }
+            }
+            if (service == null && !adb && !direct && tree == null) return@task JSONObject()
+                .put("error", "Fix Data qua SAF cần quyền cho thư mục files, để đổi tên Extra và giải nén dữ liệu.")
+                .put("needsFolder", true)
             val item = driveList("1TzGAJ018zKwUQx375uJIPH9RGqdrSLu9")
                 .singleOrNull { !it.folder && it.name.equals("extra.zip", true) }
                 ?: error("Không tìm thấy duy nhất một tệp extra.zip trong thư mục Drive.")
             val archive = File.createTempFile("extra-", ".zip", cacheDir)
             try {
                 driveFile(item.id) { input -> archive.outputStream().use { copyLimited(input, it, 4L * 1024 * 1024 * 1024) } }
-                ParcelFileDescriptor.open(archive, ParcelFileDescriptor.MODE_READ_ONLY).use { service.fixData(it) }
+                when {
+                    direct -> ParcelFileDescriptor.open(archive, ParcelFileDescriptor.MODE_READ_ONLY).use { MapFileService().fixData(it) }
+                    service != null -> ParcelFileDescriptor.open(archive, ParcelFileDescriptor.MODE_READ_ONLY).use { service.fixData(it) }
+                    adb -> adbWifi.fixData(archive)
+                    else -> SafExtraInstaller(contentResolver, checkNotNull(tree)).install(archive)
+                }
                 JSONObject().put("message", "Đã thay dữ liệu Extra. Bản gốc được giữ tại Extra1. Hãy kiểm tra quyền lại.")
             } finally { archive.delete() }
         }
@@ -372,6 +469,7 @@ class SenceActivity : ComponentActivity() {
     }
 
     private fun connectShizuku() {
+        if (!permissionEnabled("Shizuku")) return
         if (binding || mapService != null || !Shizuku.pingBinder()) return
         runCatching {
             if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
@@ -405,17 +503,21 @@ class SenceActivity : ComponentActivity() {
         }
     }
 
-    private fun savedSaf(): Uri? = state.getString("target", null)?.let(Uri::parse)?.takeIf { uri ->
-        contentResolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission && it.isWritePermission } &&
+    private fun safPermission(key: String): Uri? = state.getString(key, null)?.let(Uri::parse)?.takeIf { uri ->
+        contentResolver.persistedUriPermissions.any { (it.uri == uri || (DocumentsContract.isTreeUri(uri) &&
+            it.uri == DocumentsContract.buildTreeDocumentUri(uri.authority!!, DocumentsContract.getTreeDocumentId(uri)))) && it.isReadPermission && it.isWritePermission } &&
             runCatching { contentResolver.openFileDescriptor(uri, "rw")?.use { true } == true }.getOrDefault(false)
     }
 
+    private fun savedSaf(): Uri? = safPermission("target") ?: safPermission("saf1") ?: safPermission("saf2")
+
     private fun shizukuWritable(): Boolean = runCatching {
-        Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED &&
+        permissionEnabled("Shizuku") && Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED &&
             mapService?.canWrite() == true
     }.getOrDefault(false)
 
     private fun writableTarget(preferred: String? = null): String? {
+        if (directWritable()) return directTarget
         if (preferred == shizukuTarget && shizukuWritable()) return shizukuTarget
         if (preferred == adbTarget && adbStarted && adbWifi.canWrite()) return adbTarget
         val saf = savedSaf()?.toString()
@@ -428,20 +530,20 @@ class SenceActivity : ComponentActivity() {
     }
 
     private fun isFixedTarget(target: String): Boolean {
-        if (target == shizukuTarget || target == adbTarget) return true
+        if (target == shizukuTarget || target == adbTarget || target == directTarget) return true
         val uri = Uri.parse(target)
         return uri.authority == "com.android.externalstorage.documents" &&
             runCatching { DocumentsContract.getDocumentId(uri) == targetDocument }.getOrDefault(false)
     }
 
     private fun shizukuConnected(): Boolean = runCatching {
-        Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED &&
+        permissionEnabled("Shizuku") && Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED &&
             mapService?.asBinder()?.isBinderAlive == true
     }.getOrDefault(false)
 
     private fun checkPermissionState() = task("permission") {
         val shizukuRunning = Shizuku.pingBinder()
-        val shizukuGranted = shizukuRunning && runCatching {
+        val shizukuGranted = permissionEnabled("Shizuku") && shizukuRunning && runCatching {
             Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
         }.getOrDefault(false)
         val probe = if (shizukuGranted) runCatching { mapService?.probe() }
@@ -449,6 +551,19 @@ class SenceActivity : ComponentActivity() {
         val shizukuReady = probe == "Sẵn sàng"
         val adbReady = adbStarted && adbWifi.canWrite()
         val safReady = savedSaf() != null
+        val legacySaf = safPermission("target")
+        val saf1Ready = safPermission("saf1") != null || (legacySaf != null && DocumentsContract.isTreeUri(legacySaf))
+        val saf2Ready = safPermission("saf2") != null || (legacySaf != null && !DocumentsContract.isTreeUri(legacySaf))
+        val directReady = directWritable()
+        val methods = listOf(
+            Triple("Shizuku", shizukuReady, shizukuConnected()),
+            Triple("ADB WiFi", adbReady && !adbWifi.ldPlayerMode, adbStarted && !adbWifi.ldPlayerMode && adbWifi.isConnected()),
+            Triple("SAF V1", saf1Ready, saf1Ready), Triple("SAF V2", saf2Ready, saf2Ready),
+            Triple("LDPlayer trực tiếp", directReady, directReady),
+        )
+        val selected = methods.firstOrNull { it.first == state.getString("selectedPermission", "") }
+        val active = selected?.takeIf { it.second } ?: methods.firstOrNull { it.second }
+            ?: selected?.takeIf { it.third } ?: methods.firstOrNull { it.third }
         val shizukuLabel = when {
             shizukuReady -> "Sẵn sàng"
             shizukuGranted && mapService == null -> "Đang kết nối"
@@ -462,9 +577,18 @@ class SenceActivity : ComponentActivity() {
             else -> "Chưa kết nối"
         }
         JSONObject().put("message", "Shizuku: $shizukuLabel · ADB WiFi: $adbLabel")
-            .put("shizuku", shizukuLabel).put("adb", adbLabel)
+            .put("shizuku", shizukuLabel)
+            .put("adb", if (adbWifi.ldPlayerMode) "Chưa kết nối" else adbLabel)
+            .put("ld", if (directWritable()) "Sẵn sàng · ghi trực tiếp" else if (adbWifi.ldPlayerMode) adbLabel else "Chưa có quyền ghi")
             .put("saf", if (safReady) "Sẵn sàng" else "Chưa có quyền ghi")
-            .put("ready", shizukuReady || adbReady || safReady)
+            .put("ready", shizukuReady || adbReady || safReady || directWritable())
+            .put("methods", JSONArray().apply { methods.forEach { (name, ready, connected) ->
+                put(JSONObject().put("name", name).put("ready", ready).put("connected", connected))
+            } })
+            .put("summary", active?.let { "${it.first} đã kết nối" } ?: "Chưa có quyền bộ nhớ")
+            .put("statusColor", if (active?.second == true) "green" else if (active?.third == true) "yellow" else "red")
+            .put("selectedReady", selected?.second == true)
+            .put("selectedMethod", selected?.first ?: "")
             .put("canFix", (shizukuConnected() || (adbStarted && adbWifi.isConnected())) && !shizukuReady && !adbReady)
     }
 
@@ -566,6 +690,7 @@ class SenceActivity : ComponentActivity() {
         var retainSnapshot = false
         try {
             stagePack(pack, staged)
+            operationPhase("Đang xác minh tệp…")
             val savedPack = JSONObject(pack.toString()).apply { remove("enteredPass") }
             readTarget(uri).use { input -> snapshot.outputStream().use { copyLimited(input, it) } }
             require(snapshot.length() > 0) { "Tệp hiện tại trên máy trống." }
@@ -613,6 +738,7 @@ class SenceActivity : ComponentActivity() {
     }
 
     private fun validateBundle(file: File) {
+        operationPhase("Đang xác minh tệp tải về…")
         val header = file.inputStream().use { readUpTo(it, 8).toString(Charsets.US_ASCII) }
         require(header.startsWith("UnityFS")) { "Tệp không phải Unity AssetBundle." }
     }
@@ -623,7 +749,7 @@ class SenceActivity : ComponentActivity() {
         val target = writableTarget(preferred)
             ?: error("Chưa có quyền ghi tệp map. Cấp quyền bộ nhớ rồi thử gỡ lại.")
         val sources = driveList(originalMapFolder).filter { !it.folder && it.name == targetName }
-        require(sources.size == 1) { "Mapgoc cần có đúng một tệp $targetName công khai." }
+        require(sources.size == 1) { "Chưa tìm thấy dữ liệu bản đồ mặc định hợp lệ." }
 
         val staged = File.createTempFile("replacement-original", ".bundle", cacheDir)
         val snapshot = File.createTempFile("before-restore", ".bundle", filesDir)
@@ -713,6 +839,7 @@ class SenceActivity : ComponentActivity() {
 
     private fun readTarget(uri: String): InputStream =
         when (uri) {
+            directTarget -> File(GAME_MAP_PATH).inputStream()
             adbTarget -> {
                 check(adbStarted) { "Mở Cấp quyền bộ nhớ và kết nối lại ADB WiFi." }
                 adbWifi.readMap()
@@ -725,7 +852,11 @@ class SenceActivity : ComponentActivity() {
         mapService?.takeIf { shizukuWritable() } ?: error("Cần cấp lại quyền Shizuku cho tệp map.")
 
     private fun write(uri: String, file: File, expected: String = fileHash(file)) {
-        if (uri == adbTarget) {
+        operationPhase("Đang ghi tệp vào trò chơi…")
+        if (uri == directTarget) {
+            check(directWritable()) { "Chưa có quyền ghi trực tiếp." }
+            ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { MapFileService().replace(it) }
+        } else if (uri == adbTarget) {
             check(adbStarted) { "Mở Cấp quyền bộ nhớ và kết nối lại ADB WiFi." }
             adbWifi.writeMap(file)
         } else if (uri == shizukuTarget) {
@@ -736,10 +867,12 @@ class SenceActivity : ComponentActivity() {
                     .use { input.copyTo(it) }
             }
         }
+        operationPhase("Đang xác minh tệp sau khi ghi…")
         check(targetHash(uri) == expected) { "Nội dung tệp đích sau khi ghi không khớp." }
     }
 
     private fun confirmTarget(uri: String, expected: String) {
+        operationPhase("Đang kiểm tra hoàn tất…")
         Thread.sleep(450)
         check(targetHash(uri) == expected) { "Tệp đích đã thay đổi ngay sau khi ghi. Hãy đóng trò chơi và thử lại." }
     }
@@ -835,7 +968,12 @@ class SenceActivity : ComponentActivity() {
         if (!isDestroyed) view.evaluateJavascript("window.senceResult(${JSONObject.quote(event)}, ${data})", null)
     }
 
+    private fun operationPhase(message: String) {
+        runOnUiThread { emit("operation-phase", JSONObject().put("message", message)) }
+    }
+
     companion object {
+        private const val directTarget = "ldplayer-direct"
         private const val targetName = "scene_artist_autochess_01.assetbundle"
         private const val originalMapFolder = "1TzGAJ018zKwUQx375uJIPH9RGqdrSLu9"
         private const val shizukuTarget = "shizuku"
