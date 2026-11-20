@@ -268,7 +268,7 @@ class SenceActivity : ComponentActivity() {
                 ?: error("Không tìm thấy duy nhất một tệp extra.zip trong thư mục Drive.")
             val archive = File.createTempFile("extra-", ".zip", cacheDir)
             try {
-                driveFile(item.id) { input -> archive.outputStream().use { copyLimited(input, it) } }
+                driveFile(item.id) { input -> archive.outputStream().use { copyLimited(input, it, 4L * 1024 * 1024 * 1024) } }
                 ParcelFileDescriptor.open(archive, ParcelFileDescriptor.MODE_READ_ONLY).use { service.fixData(it) }
                 JSONObject().put("message", "Đã thay dữ liệu Extra. Bản gốc được giữ tại Extra1. Hãy kiểm tra quyền lại.")
             } finally { archive.delete() }
@@ -718,14 +718,14 @@ class SenceActivity : ComponentActivity() {
         backup.delete()
     }
 
-    private fun copyLimited(input: InputStream, output: java.io.OutputStream) {
+    private fun copyLimited(input: InputStream, output: java.io.OutputStream, limit: Long = archiveLimit) {
         val buffer = ByteArray(65536)
         var total = 0L
         while (true) {
             val count = input.read(buffer)
             if (count < 0) return
             total += count
-            require(total <= archiveLimit) { "Tệp vượt giới hạn 128 MB." }
+            require(total <= limit) { "Tệp vượt giới hạn ${limit / (1024 * 1024)} MB." }
             output.write(buffer, 0, count)
         }
     }
