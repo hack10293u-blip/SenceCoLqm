@@ -788,17 +788,28 @@ class SenceActivity : ComponentActivity() {
     }
 
     private fun resourcePathList(): JSONArray = JSONArray().apply {
-        val defaultReady = (permissionEnabled("LDPlayer trực tiếp") && probeDirectResources(File(GAME_FILES))) || shizukuConnected() || (adbStarted && adbWifi.isConnected()) || state.getString("fixTree", null)?.let { path -> contentResolver.persistedUriPermissions.any { it.uri.toString() == path && it.isWritePermission && it.isReadPermission } } == true
-        put(JSONObject().put("id", "default").put("name", "Mặc định").put("path", GAME_FILES).put("ready", defaultReady))
+        val defaultReady = runCatching {
+            val store = resourceStore("default")
+            if (store != null) ResourceInstaller.canWrite(store) else mapService?.canWriteResources() == true
+        }.getOrDefault(false)
+        put(JSONObject().put("id", "default").put("name", "Liên Quân · garena").put("path", GAME_FILES).put("ready", defaultReady))
+        val secondRoot = File("/storage/emulated/0/Android/data/com.memecheat.kgvn/files")
+        put(JSONObject().put("id", "memecheat").put("name", "Liên Quân · memecheat").put("path", secondRoot.path)
+            .put("ready", permissionEnabled("LDPlayer trực tiếp") && probeDirectResources(secondRoot)))
         resourcePaths.all.forEach { (id, value) -> runCatching {
             val item = JSONObject(value as String)
             val direct = item.optString("type") == "direct"
-            val ready = if (direct) probeDirectResources(resourceDirectory(item.getString("path"))) else contentResolver.persistedUriPermissions.any { it.uri.toString() == item.getString("uri") && it.isReadPermission && it.isWritePermission }
+            val ready = if (direct) runCatching { probeDirectResources(resourceDirectory(item.getString("path"))) }.getOrDefault(false) else runCatching { ResourceInstaller.canWrite(SafResources(contentResolver, Uri.parse(item.getString("uri")))) }.getOrDefault(false)
             put(JSONObject().put("id", id).put("name", item.getString("name")).put("path", if (direct) item.getString("path") else item.getString("uri")).put("ready", ready))
         } }
     }
 
     private fun resourceStore(route: String): ResourceStore? {
+        if (route == "memecheat") {
+            val root = resourceDirectory("/storage/emulated/0/Android/data/com.memecheat.kgvn/files")
+            check(probeDirectResources(root)) { "Đúng đường dẫn com.memecheat.kgvn, nhưng Android chưa cho SenceLab ghi trực tiếp tại đây." }
+            return DiskResources(root)
+        }
         if (route != "default") {
             val info = resourcePaths.getString(route, null)?.let(::JSONObject) ?: error("Hãy chọn đường dẫn đã cấp quyền.")
             if (info.optString("type") == "direct") {
@@ -820,9 +831,10 @@ class SenceActivity : ComponentActivity() {
 
     private fun resourceDirectory(path: String): File {
         require(path.trim().startsWith('/')) { "Nhập đường dẫn thư mục đầy đủ." }
-        val root = File(path.trim()).canonicalFile
-        val base = File(GAME_FILES).canonicalPath
-        require(root.path == base || root.path.startsWith(base + File.separator)) { "Đường dẫn phải nằm trong thư mục files của trò chơi." }
+        val entered = File(path.trim()).canonicalFile
+        val root = if (entered.name == "Resources") entered.parentFile ?: entered else entered
+        val bases = listOf(GAME_FILES, "/storage/emulated/0/Android/data/com.memecheat.kgvn/files").map { File(it).canonicalPath }
+        require(bases.any { base -> root.path == base || root.path.startsWith(base + File.separator) }) { "Đường dẫn phải nằm trong files của com.garena.game.kgvn hoặc com.memecheat.kgvn." }
         require(root.isDirectory && root.name != "Resources") { "Chọn thư mục cha chứa Resources, không chọn chính Resources." }
         return root
     }

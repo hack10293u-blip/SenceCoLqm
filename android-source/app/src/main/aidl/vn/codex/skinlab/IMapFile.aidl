@@ -10,5 +10,6 @@ interface IMapFile {
     void fixData(in ParcelFileDescriptor archive) = 4;
     void installResources(in ParcelFileDescriptor archive, boolean replace) = 5;
     int deleteResourceBackups() = 6;
+    boolean canWriteResources() = 7;
     void destroy() = 16777114;
 }

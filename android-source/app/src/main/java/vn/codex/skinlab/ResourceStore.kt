@@ -71,6 +71,21 @@ internal class SafResources(private val resolver: ContentResolver, private val t
 }
 
 internal object ResourceInstaller {
+    fun canWrite(store: ResourceStore): Boolean {
+        val original = "SencePermission-${UUID.randomUUID()}"
+        val renamed = "$original-renamed"
+        return try {
+            store.mkdir(original)
+            store.write("$original/probe", byteArrayOf(1).inputStream())
+            check(store.read("$original/probe").use { it.read() } == 1)
+            store.rename(original, renamed)
+            store.delete(renamed)
+            true
+        } catch (_: Exception) { false } finally {
+            runCatching { if (store.exists(original)) store.delete(original) }
+            runCatching { if (store.exists(renamed)) store.delete(renamed) }
+        }
+    }
     private val backupName = Regex("Resources[1-9][0-9]*")
     fun deleteBackups(store: ResourceStore): Int {
         val backups = store.list("").filter { it.second && backupName.matches(it.first) }
