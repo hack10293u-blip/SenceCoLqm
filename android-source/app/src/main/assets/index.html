@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 2.1.3</title>
+  <title>SenceLab 2.1.4</title>
   <style>
     :root {
       color-scheme: dark;
@@ -557,11 +557,11 @@
         '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>',
       settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.1.3</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.1.4</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Tính năng chưa ra mắt", "Đang phát triển", "info", "lilac")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v2.1.3 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v2.1.4 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Ảnh và tệp tạm · <b>" + cacheLabel() + "</b>", "Xóa", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -700,7 +700,7 @@
         return;
       }
       applying = true;
-      dialog.innerHTML = '<h2 id="dialog-title">Đang áp dụng…</h2><p>Đang kiểm tra quyền và dữ liệu…</p><progress style="width:100%"></progress>';
+      dialog.innerHTML = '<h2 id="dialog-title">Đang áp dụng…</h2><p>Đang chuẩn bị dữ liệu…</p><progress style="width:100%"></progress>';
       if (!dialog.open) dialog.showModal();
       native.applyImported(file.localId, route);
     }
@@ -796,7 +796,7 @@
           applyImportedFile(file, route, true); break;
         }
         case "demo-res-path":
-          dialog.innerHTML = '<h2 id="dialog-title">Thêm đường dẫn</h2><p>Nhập thư mục cha chứa Resources. SenceLab sẽ kiểm tra quyền tạo, ghi và đổi tên trực tiếp tại đây.</p><label class="pass-label" for="resource-path-name">Tên đường dẫn</label><input id="resource-path-name" class="search" maxlength="60" placeholder="Ví dụ: Resources Liên Quân"><label class="pass-label" for="resource-path-value">Đường dẫn</label><input id="resource-path-value" class="search" placeholder="/storage/emulated/0/Android/data/com.garena.game.kgvn/files"><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Lưu đường dẫn", "demo-res-save-path") + '</div>' + button("Chọn bằng ZArchiver", "choose-resource-folder", "secondary full");
+          dialog.innerHTML = '<h2 id="dialog-title">Thêm đường dẫn</h2><p>Nhập thư mục cha chứa Resources. Khi áp dụng, SenceLab sẽ thử ghi trực tiếp và xác minh kết quả.</p><label class="pass-label" for="resource-path-name">Tên đường dẫn</label><input id="resource-path-name" class="search" maxlength="60" placeholder="Ví dụ: Resources Liên Quân"><label class="pass-label" for="resource-path-value">Đường dẫn</label><input id="resource-path-value" class="search" placeholder="/storage/emulated/0/Android/data/com.garena.game.kgvn/files"><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Lưu đường dẫn", "demo-res-save-path") + '</div>' + button("Chọn bằng ZArchiver", "choose-resource-folder", "secondary full");
           if (!dialog.open) dialog.showModal(); break;
         case "choose-resource-folder": {
           const input = dialog.querySelector("#resource-path-name");
@@ -809,7 +809,7 @@
           const name = nameInput.value.trim(), path = pathInput.value.trim();
           if (!name) { nameInput.focus(); break; }
           if (!path) { pathInput.focus(); break; }
-          dialog.innerHTML = '<h2 id="dialog-title">Đang kiểm tra đường dẫn…</h2><p>Kiểm tra quyền ghi trực tiếp của SenceLab.</p><progress></progress>';
+          dialog.innerHTML = '<h2 id="dialog-title">Đang lưu đường dẫn…</h2><p>Lưu vị trí dùng cho Resources.</p><progress></progress>';
           native.addResourcePath(name, path); break;
         }
         case "demo-import-res": demoCategory = "Res"; native.chooseImport("Res"); break;
@@ -1051,10 +1051,6 @@
         selectedDemoResourcePath = demoResourcePaths.find(path => path.id === result.route) || selectedDemoResourcePath;
         if (selectedDemoResourcePath) selectedDemoResourcePath.checking = false;
         if (app.page === "resources") render();
-        if (!result.ready) {
-          notice("Cấp quyền cho đường dẫn", "Đã chọn đường dẫn. Hãy cấp quyền bộ nhớ để SenceLab có thể ghi, giải nén và đổi tên Resources tại đây.");
-          dialog.insertAdjacentHTML("beforeend", button("Cấp quyền bộ nhớ", "access", "primary full"));
-        }
         return;
       }
       if (event === "resource-state" || event === "resource-paths") {
@@ -1071,7 +1067,7 @@
       if (event === "import-apply") {
         applying = false;
         native.resourceState();
-        if (result.error) { notice("Chưa áp dụng được", result.error); if (/quyền/i.test(result.error)) dialog.insertAdjacentHTML("beforeend", button("Cấp quyền bộ nhớ", "access", "primary full")); return; }
+        if (result.error) { notice("Chưa áp dụng được", result.error); return; }
         if (result.category === "Map cờ") { app.pack = result.pack; dialog.close(); go("home"); }
         else { if (result.category === "Res") { activeDemoResource = app.bundles.find(x => x.localId === result.active.localId) || result.active; activeDemoResourcePath = demoResourcePaths.find(x => x.id === result.active.route) || null; } render(); }
         notice("Áp dụng thành công", (result.message || "Đã thay và xác minh tệp map.") + " Hãy tắt Shizuku và gỡ lỗi khi dùng xong."); return;

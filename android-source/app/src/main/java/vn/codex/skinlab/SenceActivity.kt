@@ -257,7 +257,6 @@ class SenceActivity : ComponentActivity() {
             val label = name.trim()
             require(label.length in 1..60 && label.none { it.isISOControl() }) { "Đặt tên đường dẫn từ 1 đến 60 ký tự." }
             val root = resourceDirectory(path)
-            require(probeDirectResources(root)) { "SenceLab chưa có quyền ghi trực tiếp tại đường dẫn này. Nhập đường dẫn không tự cấp quyền truy cập." }
             val id = UUID.randomUUID().toString()
             check(resourcePaths.edit().putString(id, JSONObject().put("name", label).put("path", root.path).put("type", "direct").toString()).commit())
             JSONObject().put("paths", resourcePathList()).put("selected", id)
@@ -820,43 +819,32 @@ class SenceActivity : ComponentActivity() {
             }
         }
         val root = resourceRoot(route)
-        if (probeDirectResources(root)) return DiskResources(root)
-        if (shizukuConnected() && mapService?.canWriteResourcesAt(root.path) == true) return null
+        if (root.canRead() && root.canWrite()) return DiskResources(root)
+        if (shizukuConnected()) return null
         if (adbStarted && adbWifi.isConnected()) {
             val store = adbWifi.resourceStore(root.path)
-            if (ResourceInstaller.canWrite(store)) return store
+            return store
         }
         val tree = state.getString("fixTree", null)?.let(Uri::parse)
         if (route == "default" && tree != null && contentResolver.persistedUriPermissions.any { it.uri == tree && it.isReadPermission && it.isWritePermission }) {
             val store = SafResources(contentResolver, tree)
-            if (ResourceInstaller.canWrite(store)) return store
+            return store
         }
-        error("Đã chọn đúng đường dẫn "+root.path+", nhưng SenceLab chưa có quyền ghi tại đây. Hãy cấp quyền bộ nhớ rồi chọn lại đường dẫn.")
+        return DiskResources(root)
     }
 
     private fun resourceDirectory(path: String): File = allowedResourceRoot(path.trim())
 
     private fun resourceRouteReady(route: String): Boolean = runCatching {
-        val store = resourceStore(route)
-        if (store != null) ResourceInstaller.canWrite(store) else mapService?.canWriteResourcesAt(resourceRoot(route).path) == true
-    }.getOrDefault(false)
-
-    private fun probeDirectResources(root: File): Boolean {
-        val first = File(root, "SencePermission-${UUID.randomUUID()}")
-        val second = File(root, first.name + "-renamed")
-        return try {
-            check(root.isDirectory && first.mkdir())
-            val file = File(first, "probe")
-            file.outputStream().use { it.write(byteArrayOf(1)); it.fd.sync() }
-            check(file.readBytes().contentEquals(byteArrayOf(1)))
-            check(first.renameTo(second))
-            check(File(second, "probe").delete() && second.delete())
-            true
-        } catch (_: Exception) { false } finally {
-            if (first.exists()) first.deleteRecursively()
-            if (second.exists()) second.deleteRecursively()
+        if (route !in listOf("default", "memecheat")) {
+            val info = JSONObject(resourcePaths.getString(route, null) ?: return@runCatching false)
+            if (info.optString("type") != "direct") return@runCatching contentResolver.persistedUriPermissions.any {
+                it.uri.toString() == info.getString("uri") && it.isReadPermission && it.isWritePermission
+            }
         }
-    }
+        val root = resourceRoot(route)
+        (root.canRead() && root.canWrite()) || shizukuConnected() || (adbStarted && adbWifi.isConnected())
+    }.getOrDefault(false)
 
     private fun installResourceBundle(id: String, route: String, replace: Boolean) {
         val file = bundleFile(id)
