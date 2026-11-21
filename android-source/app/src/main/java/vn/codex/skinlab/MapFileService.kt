@@ -13,13 +13,13 @@ internal const val GAME_MAP_PATH =
 /** Shizuku exposes only this single file, never a caller-supplied path or shell command. */
 class MapFileService : IMapFile.Stub() {
     @Synchronized override fun installResourcesAt(archive: ParcelFileDescriptor, replace: Boolean, root: String) {
-        ParcelFileDescriptor.AutoCloseInputStream(archive).use { ResourceInstaller.install(DiskResources(allowedResourceRoot(root)), it, replace) }
+        ParcelFileDescriptor.AutoCloseInputStream(archive).use { ResourceInstaller.install(DiskResources(allowedResourceRoot(root)), it, replace, workDirectory = File("/data/local/tmp")) }
     }
     @Synchronized override fun deleteResourceBackupsAt(root: String): Int = ResourceInstaller.deleteBackups(DiskResources(allowedResourceRoot(root)))
     @Synchronized override fun canWriteResourcesAt(root: String): Boolean = ResourceInstaller.canWrite(DiskResources(allowedResourceRoot(root)))
     @Synchronized override fun canWriteResources(): Boolean = ResourceInstaller.canWrite(DiskResources())
     @Synchronized override fun installResources(archive: ParcelFileDescriptor, replace: Boolean) {
-        ParcelFileDescriptor.AutoCloseInputStream(archive).use { ResourceInstaller.install(DiskResources(), it, replace) }
+        ParcelFileDescriptor.AutoCloseInputStream(archive).use { ResourceInstaller.install(DiskResources(), it, replace, workDirectory = File("/data/local/tmp")) }
     }
     @Synchronized override fun deleteResourceBackups(): Int = ResourceInstaller.deleteBackups(DiskResources())
     private val target = File(GAME_MAP_PATH)

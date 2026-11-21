@@ -850,7 +850,7 @@ class SenceActivity : ComponentActivity() {
         val file = bundleFile(id)
         val store = resourceStore(route)
         operationPhase("Đang giải nén và xác minh Resources…")
-        if (store != null) file.inputStream().use { ResourceInstaller.install(store, it, replace, ::operationPhase) }
+        if (store != null) file.inputStream().use { ResourceInstaller.install(store, it, replace, ::operationPhase, cacheDir) }
         else ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { checkNotNull(mapService).installResourcesAt(it, replace, resourceRoot(route).path) }
     }
 

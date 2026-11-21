@@ -100,31 +100,38 @@ internal object ResourceInstaller {
         backups.forEach { store.delete(it.first) }
         return backups.size
     }
-    fun install(store: ResourceStore, input: InputStream, replace: Boolean, phase: (String) -> Unit = {}) {
-        val stage = "SenceResources-${UUID.randomUUID()}"
-        val rollback = "SenceResourcesOld-${UUID.randomUUID()}"
-        store.mkdir(stage)
-        var old: String? = null
-        var committed = false
+    fun install(store: ResourceStore, input: InputStream, replace: Boolean, phase: (String) -> Unit = {}, workDirectory: File = File(System.getProperty("java.io.tmpdir"))) {
+        val work = File.createTempFile("sence-resources-", ".tmp", workDirectory)
+        check(work.delete() && work.mkdir()) { "Không tạo được bộ nhớ tạm riêng." }
+        val extracted = File(work, "extracted").apply { check(mkdir()) }
+        val snapshots = File(work, "snapshots").apply { check(mkdir()) }
+        val changes = mutableListOf<Pair<String, File?>>()
+        val createdDirectories = mutableListOf<String>()
+        val payload = mutableListOf<Pair<String, File>>()
+        var backup: String? = null
+        var started = false
+        var retain = false
         fun hash(stream: InputStream): ByteArray = stream.use { source ->
             val digest = MessageDigest.getInstance("SHA-256")
             val buffer = ByteArray(65536)
-            while (true) { val count = source.read(buffer); if (count < 0) break; digest.update(buffer, 0, count) }
+            while (true) { val size = source.read(buffer); if (size < 0) break; digest.update(buffer, 0, size) }
             digest.digest()
         }
-        fun clone(from: String, to: String) {
-            store.mkdir(to)
-            for ((name, directory) in store.list(from)) {
-                require(name.isNotEmpty() && name != "." && name != ".." && !name.contains('/'))
-                if (directory) clone("$from/$name", "$to/$name") else store.read("$from/$name").use { store.write("$to/$name", it) }
+        fun ensureDirectory(path: String) {
+            var current = ""
+            for (part in path.split('/').filter { it.isNotEmpty() }) {
+                current = if (current.isEmpty()) part else "$current/$part"
+                if (!store.exists(current)) { store.mkdir(current); createdDirectories.add(current) }
             }
         }
+        fun put(path: String, file: File) {
+            file.inputStream().use { store.write(path, it) }
+            check(hash(file.inputStream()).contentEquals(hash(store.read(path)))) { "Tệp sau khi ghi không khớp: $path" }
+        }
         try {
-            if (!replace && store.exists("Resources")) { phase("Đang giữ dữ liệu hiện tại…"); clone("Resources", stage) }
-            phase("Đang giải nén và ghi tệp…")
+            phase("Đang giải nén trong bộ nhớ riêng của SenceLab…")
             val names = HashSet<String>()
             var bytes = 0L
-            var files = 0
             ZipInputStream(input).use { zip ->
                 while (true) {
                     val entry = zip.nextEntry ?: break
@@ -132,43 +139,66 @@ internal object ResourceInstaller {
                     if (name.isEmpty() && entry.isDirectory) { zip.closeEntry(); continue }
                     require(name.isNotEmpty() && !name.startsWith('/') && !name.contains('\\') && !name.contains(':') && name.none { it.isISOControl() } && name.split('/').none { it.isEmpty() || it == "." || it == ".." } && names.add(name)) { "Đường dẫn trong ZIP không hợp lệ hoặc trùng lặp." }
                     require(names.size <= 100000) { "ZIP chứa quá nhiều mục." }
-                    val destination = "$stage/$name"
-                    if (entry.isDirectory) store.mkdir(destination) else {
-                        store.mkdir(destination.substringBeforeLast('/'))
-                        val digest = MessageDigest.getInstance("SHA-256")
-                        val tracked = object : java.io.FilterInputStream(zip) {
-                            override fun close() = Unit
-                            override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
-                                val count = zip.read(buffer, offset, length)
-                                if (count > 0) { bytes += count; require(bytes <= 4L * 1024 * 1024 * 1024) { "Giải nén vượt 4 GB." }; digest.update(buffer, offset, count) }
-                                return count
+                    val destination = File(extracted, name)
+                    if (entry.isDirectory) check(destination.isDirectory || destination.mkdirs()) else {
+                        check(destination.parentFile!!.isDirectory || destination.parentFile!!.mkdirs())
+                        destination.outputStream().use { output ->
+                            val buffer = ByteArray(65536)
+                            while (true) {
+                                val size = zip.read(buffer); if (size < 0) break
+                                bytes += size
+                                require(bytes <= 4L * 1024 * 1024 * 1024) { "Dữ liệu giải nén vượt 4 GB." }
+                                output.write(buffer, 0, size)
                             }
-                            override fun read(): Int { val b = ByteArray(1); return if (read(b, 0, 1) < 0) -1 else b[0].toInt() and 255 }
+                            output.fd.sync()
                         }
-                        store.write(destination, tracked)
-                        check(digest.digest().contentEquals(hash(store.read(destination)))) { "Tệp sau khi ghi không khớp: $name" }
-                        files++
+                        payload.add(name to destination)
                     }
                     zip.closeEntry()
                 }
             }
-            require(files > 0) { "ZIP không có tệp dữ liệu." }
-            phase("Đang hoàn tất Resources…")
-            if (store.exists("Resources")) {
-                old = if (replace) {
-                    val largest = store.list("").mapNotNull { if (backupName.matches(it.first)) it.first.removePrefix("Resources").toLongOrNull() else null }.maxOrNull() ?: 0
-                    check(largest < Long.MAX_VALUE)
-                    "Resources${largest + 1}"
-                } else rollback
-                store.rename("Resources", old!!)
+            require(payload.isNotEmpty()) { "ZIP không có tệp dữ liệu." }
+            phase(if (replace) "Đang đổi tên Resources để giữ bản sao…" else "Đang ghi đè các tệp trong Resources…")
+            if (replace && store.exists("Resources")) {
+                val largest = store.list("").mapNotNull { if (it.second && backupName.matches(it.first)) it.first.removePrefix("Resources").toLongOrNull() else null }.maxOrNull() ?: 0
+                check(largest < Long.MAX_VALUE)
+                val nextBackup = "Resources${largest + 1}"
+                store.rename("Resources", nextBackup)
+                backup = nextBackup
             }
-            try { store.rename(stage, "Resources"); committed = true } catch (failure: Exception) {
-                old?.let { store.rename(it, "Resources") }
-                throw failure
+            started = true
+            ensureDirectory("Resources")
+            for ((name, file) in payload) {
+                val target = "Resources/$name"
+                ensureDirectory(target.substringBeforeLast('/'))
+                if (!replace) {
+                    val snapshot = if (store.exists(target)) File(snapshots, name).apply {
+                        check(parentFile!!.isDirectory || parentFile!!.mkdirs())
+                        store.read(target).use { source -> outputStream().use { source.copyTo(it) } }
+                    } else null
+                    changes.add(target to snapshot)
+                }
+                put(target, file)
             }
-            if (!replace && old != null) store.delete(old!!)
+            phase("Đã ghi và xác minh Resources.")
+        } catch (failure: Exception) {
+            if (started || backup != null) {
+                val recovered = runCatching {
+                    if (replace) {
+                        if (store.exists("Resources")) store.delete("Resources")
+                        backup?.let { store.rename(it, "Resources") }
+                    } else {
+                        for ((path, snapshot) in changes.asReversed()) {
+                            if (snapshot == null) { if (store.exists(path)) store.delete(path) } else put(path, snapshot)
+                        }
+                        for (directory in createdDirectories.asReversed()) if (store.exists(directory)) store.delete(directory)
+                    }
+                }
+                if (recovered.isFailure) { retain = true; error("Thao tác thất bại và chưa khôi phục hết. Bản sao Resources nằm tại ${backup ?: work.path}. Lỗi ban đầu: ${failure.message}") }
+            }
+            throw failure
         } finally {
-            if (!committed && store.exists(stage)) store.delete(stage)
+            if (!retain) work.deleteRecursively()
         }
     }
 }
