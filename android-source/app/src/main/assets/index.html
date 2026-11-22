@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 2.1.5</title>
+  <title>SenceLab 2.2.0</title>
   <style>
     :root {
       color-scheme: dark;
@@ -301,65 +301,43 @@
     .support-row button { flex: 0 0 100px; width: 100px; min-height: 42px; white-space: nowrap; }
     .support-row > div { min-width: 0; overflow-wrap: anywhere; }
     main[data-page="access"] > *, main[data-page="permissions"] > *, .memory-method { animation: none !important; }
-    .imported-tile { overflow: hidden; min-width: 0; }
-    .imported-cover { aspect-ratio: 1; display: grid; place-items: center; background: color-mix(in srgb, var(--lilac) 14%, var(--panel)); color: var(--lilac); }
-    .imported-cover.mint { background: color-mix(in srgb, var(--mint) 13%, var(--panel)); color: var(--mint); }
-    .imported-cover.pink { background: color-mix(in srgb, var(--pink) 13%, var(--panel)); color: var(--pink); }
-    .imported-cover .icon { width: 48px; height: 48px; }
-    .imported-info { padding: 12px; }
-    .imported-info strong { display: block; overflow-wrap: anywhere; margin: 3px 0 12px; }
-    .imported-info small { color: var(--muted); }
-    .imported-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-    .imported-actions button { padding: 7px 10px; }
-    .import-types [data-action="demo-type-0"] { color: var(--lilac); background: color-mix(in srgb, var(--lilac) 17%, var(--panel)); border-color: color-mix(in srgb, var(--lilac) 40%, var(--border)); }
-    .import-types [data-action="demo-type-1"] { color: var(--mint); background: color-mix(in srgb, var(--mint) 17%, var(--panel)); border-color: color-mix(in srgb, var(--mint) 40%, var(--border)); }
-    .import-types [data-action="demo-type-2"] { color: var(--pink); background: color-mix(in srgb, var(--pink) 17%, var(--panel)); border-color: color-mix(in srgb, var(--pink) 40%, var(--border)); }
-    .import-types button { min-height: 54px; font-size: 15px; }
-    .resources-tools { display: flex; align-items: stretch; gap: 10px; margin-top: 14px; }
-    .resources-tools > .card { flex: 1; min-width: 0; margin: 0; }
-    .resources-trash { flex: 0 0 56px; border: 1px solid color-mix(in srgb, var(--pink) 35%, var(--border)); border-radius: 18px; background: color-mix(in srgb, var(--pink) 12%, var(--panel)); color: var(--pink); display: grid; place-items: center; }
-    .resources-trash .icon { width: 23px; height: 23px; }
-    .resource-import { color: var(--lilac); border-color: color-mix(in srgb, var(--lilac) 35%, var(--border)); background: color-mix(in srgb, var(--lilac) 10%, var(--panel)); }
-    .resource-file { overflow-wrap: anywhere; font-size: 13px; }
-    .resources-page { padding: 22px; margin-top: 20px; }
-    .resources-page-symbol { display: flex; justify-content: center; padding: 10px 0 18px; }
-    .resources-page-symbol .symbol { width: 70px; height: 70px; }
-    .resources-page-symbol .icon { width: 29px; height: 29px; }
-    .resource-selection { padding: 16px 0; overflow-wrap: anywhere; }
-    .resource-selection small { display: block; color: var(--muted); margin-bottom: 5px; }
-    .resources-title { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
-    .resources-title h1 { flex: 1; min-width: 0; }
-    .resources-title .resources-trash { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 15px; }
-    .resources-status { display: flex; align-items: center; gap: 15px; padding: 23px; min-height: 125px; margin: 20px 0 16px; }
-    .resources-status > div { min-width: 0; }
-    .resources-status small { display: block; color: var(--muted); margin-bottom: 4px; }
-    .resources-status strong { display: block; font-size: 20px; }
-    .resources-status p { margin: 6px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
-    .resource-demo-link { display: block; text-align: center; margin-top: 16px; color: var(--lilac); font-size: 13px; text-underline-offset: 3px; }
-    .resource-import-list li { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
-    .resource-import-list li strong { display: block; overflow-wrap: anywhere; }
-    .resource-import-list li small { display: block; color: var(--muted); margin-top: 4px; }
-    .resources-status strong { overflow-wrap: anywhere; }
-    .resource-import-list li { flex-wrap: wrap; }
-    .resource-input-actions { display: flex; gap: 10px; margin-top: 16px; align-items: stretch; }
-    .resource-input-actions > button:first-child { flex: 0 0 95px; }
-    .resource-input-actions > button:last-child { flex: 1; min-width: 0; }
-    .resource-path-list { list-style: none; padding: 0; margin: 0; }
-    .resource-path-list li { padding: 13px; margin-bottom: 10px; overflow-wrap: anywhere; font-size: 13px; }
-    .resource-path-list small { display: block; color: var(--mint); margin-top: 5px; }
-    #demo-res-target { width: 100%; min-width: 0; }
-    .resource-input-actions { display: flex; align-items: stretch; gap: 8px; }
-    .resource-input-actions > button:first-child, .resource-input-actions > button:last-child { flex: 0 0 auto; min-width: 66px; padding-inline: 13px; }
-    .resource-path-select { flex: 1; min-width: 0; width: 0; min-height: 42px; border-radius: 99px; padding: 8px 12px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; font-weight: 700; text-overflow: ellipsis; }
-    .resource-selected-path { margin: 13px 0 22px; font-size: 13px; overflow-wrap: anywhere; }
-    .resource-selected-path strong, .resource-selected-path span { display: block; }
-    .resource-selected-path span { color: var(--muted); margin-top: 4px; }
-    .resource-input-actions > .secondary, .resource-input-actions > .resource-path-select { background: var(--lilac); color: var(--bg); border-color: transparent; box-shadow: inset 0 1px 0 var(--fx-sheen), 0 3px 12px var(--fx-glow); }
-    [data-theme="light"] .resource-input-actions > .secondary, [data-theme="light"] .resource-input-actions > .resource-path-select { background: #7860b5; color: #ffffff; }
-    .resource-path-select option { background: var(--panel); color: var(--text); }
-    .import-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
-    .import-heading small { font-size: 12px; line-height: 1.5; color: var(--muted); max-width: 250px; }
-</style>
+
+    .import-kind-tabs { display:flex; gap:10px; margin:20px 0; }
+    .import-kind { flex:1; padding:13px 6px; border-radius:17px; font-weight:700; border:1px solid var(--border); background:var(--panel); color:var(--text); transition:background .18s,box-shadow .18s; }
+    .import-kind.kind-0 { color:#8060bc; background:color-mix(in srgb,var(--lilac) 23%,var(--panel)); }
+    .import-kind.kind-1 { color:#267b65; background:color-mix(in srgb,var(--mint) 28%,var(--panel)); }
+    .import-kind.kind-2 { color:#a94572; background:color-mix(in srgb,var(--pink) 28%,var(--panel)); }
+    .import-kind.selected { box-shadow:inset 0 0 0 2px currentColor; }
+    .import-picker { padding:24px; text-align:center; }
+    .import-picker .symbol { margin:auto; }
+    .import-picker h2 { margin:12px 0 4px; }
+    .import-picker p { margin:0 0 20px; }
+    .import-demo-list { padding:0; list-style:none; display:grid; gap:14px; }
+    .import-demo-list li { margin:0; padding:16px; display:flex; align-items:center; gap:12px; border-radius:25px; }
+    .import-demo-info { flex:1; min-width:0; }
+    .import-demo-info strong { display:block; font-size:16px; font-weight:550; overflow-wrap:anywhere; }
+    .import-demo-info small { display:block; color:var(--muted); margin-top:7px; font-size:13px; }
+    .import-demo-actions { display:flex; gap:10px; flex:none; }
+    .import-demo-actions button { padding:12px 18px; min-height:48px; }
+    @media(max-width:360px){.import-demo-list li{padding:12px;gap:8px}.import-demo-actions{gap:6px}.import-demo-actions button{padding:10px 12px}}
+  
+    .import-tools { display:flex; align-items:center; gap:9px; margin:22px 0 28px; }
+    .import-tools > button, .import-route { border-radius:999px; min-height:48px; background:#7b60b5; color:#fff; border:1px solid rgba(255,255,255,.38); box-shadow:inset 0 2px 0 rgba(255,255,255,.26),0 4px 14px rgba(100,67,155,.18); font:inherit; font-size:14px; font-weight:600; }
+    .import-tools > button { flex:0 0 auto; padding:11px 17px; }
+    .import-route { flex:1; width:0; min-width:0; padding:11px 14px; text-overflow:ellipsis; }
+    .import-route option { background:var(--panel); color:var(--text); }
+    @media(max-width:360px){.import-tools{gap:6px}.import-tools > button{padding-inline:12px}.import-route{padding-inline:10px;font-size:12px}}
+      .skin-library-empty { padding:32px 20px; text-align:center; }
+    .skin-library-empty .symbol { margin:0 auto; }
+  
+    .catalog-subtitle { display:flex; align-items:baseline; justify-content:space-between; gap:14px; margin-bottom:20px; }
+    .catalog-subtitle .intro { margin:0; flex:1; }
+    .catalog-subtitle .history-text { flex:none; padding:5px 0 5px 8px; border:0; border-radius:0; background:none; box-shadow:none; color:#77b9ee; font:inherit; font-weight:600; white-space:nowrap; }
+    .catalog-subtitle .history-text:hover { color:#4d9bda; }
+    .history-placeholder { display:grid; place-items:center; aspect-ratio:1; background:var(--panel); color:var(--lilac); }
+    .history-placeholder .icon { width:46px; height:46px; }
+      .skin-active { display:inline-block; margin-top:10px; padding:5px 10px; border-radius:9px; font-size:13px; font-weight:700; line-height:1.5; color:#9ff3d4; background:rgba(8,32,29,.88); border:1px solid rgba(159,243,212,.38); text-shadow:none; }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -371,7 +349,6 @@
   
 <script>
     const paths = {
-      trash: '<path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6m4-6v6"/>',
       bolt: '<path d="m13 2-8 12h6l-1 8 9-12h-6z"/>',
       home: '<path d="m3 11 9-8 9 8M5 9v11h5v-6h4v6h5V9"/>',
       grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -408,27 +385,27 @@
     let applying = false;
     let memoryStatus = "Đang kiểm tra quyền bộ nhớ…";
     let memoryDetails = null;
-    let demoCategory = "Map cờ";
-    let demoResourceFiles = [];
-    let demoResourcePaths = [];
-    let activeDemoResourcePath = null;
-    let pendingImportTarget = null;
-    let selectedDemoResourcePath = null;
-    let activeDemoResource = null;
     let lastHomeBack = 0;
     let awaitingMemory = false;
     let resetTimer = null;
     let cacheBytes = 0;
     const cacheLabel = () => (cacheBytes / 1048576).toFixed(1) + " MB";
     let historyCollapsed = false;
-    try { usedMaps = JSON.parse(localStorage.getItem("sence.usedMaps") || "[]"); } catch {}
+    try { usedMaps = JSON.parse(localStorage.getItem("sence.2.2.0.usedMaps") || "[]"); } catch {}
     const app = {
       page: "home", origins: {}, mode: "", pack: null, bundles: [], pending: null,
       query: "", feedback: "", dark: false, admin: false
     };
     try { app.dark = localStorage.getItem("skinlab.theme") === "dark"; app.bundles = JSON.parse(native.listBundles()); app.pack = JSON.parse(native.active() || "null"); } catch {}
     app.admin = native.isAdmin();
-    demoResourceFiles = app.bundles.filter(x => x.category === "Res");
+    let importKind = 'Map cờ';
+    let catalogKind = 'Map cờ';
+    let skinEntries = [];
+    let demoImports = app.bundles;
+    let skinLoading = true;
+    let skinError = '';
+
+    app.skinActive = native.skinActive();
     let hotPacks = [];
     let onlineDownloads = null;
     const downloadCount = new Intl.NumberFormat("vi-VN");
@@ -436,11 +413,11 @@
       ["Kết nối Shizuku", "Xem cách cấp quyền qua Shizuku.", "Bật Shizuku trên thiết bị. Trong tab Quyền, mở Cấp quyền bộ nhớ, chọn Shizuku rồi xác nhận yêu cầu cấp quyền.", "bang"],
       ["Cấp quyền qua ADB WiFi hoặc SAF", "Xem các phương thức truy cập còn lại.", "Mở Cấp quyền bộ nhớ trong tab Quyền. Bấm dấu chấm than cạnh ADB WiFi, SAF V1 hoặc SAF V2 để đọc hướng dẫn riêng.", "guong"],
       ["Áp dụng map từ Kho Map", "Xem trước map và nhập pass.", "Chọn một map trong Kho Map, nhập pass của map rồi bấm Áp dụng. Map đang dùng sẽ xuất hiện trên Trang chủ.", "sakura"],
-      ["Nhập AssetBundle", "Đặt tên và áp dụng tệp đã nhập.", "Chọn một tệp .assetbundle, đặt tên, lưu rồi bấm Áp dụng cạnh tệp.", "hai-tac"],
+      ["Nhập tệp", "Nhập Map 5v5, Map cờ hoặc Skin.", "Map cờ nhận .assetbundle, Map 5v5 và Skin nhận .zip có cấu trúc Resources/1.64.1. Đặt tên, lưu rồi bấm Áp dụng cạnh tệp.", "hai-tac"],
       ["Gỡ map đang dùng", "Đặt lại map trên Trang chủ.", "Trên Trang chủ, bấm Gỡ map đang dùng rồi xác nhận. Thẻ map sẽ trở về trạng thái chưa áp dụng.", "guong"],
     ];
     const tabs = [
-      ["home", "Trang chủ", "home"], ["catalog", "Kho Map", "grid"],
+      ["home", "Trang chủ", "home"], ["catalog", "Kho", "grid"],
       ["import", "Nhập", "file"], ["permissions", "Quyền", "wrench"],
       ["settings", "Cài đặt chung", "settings"]
     ];
@@ -448,8 +425,8 @@
 
       ["Shizuku", "Bật Shizuku rồi cấp quyền cho SenceLab.", "link", "lilac", "Cài Shizuku và khởi động bằng Gỡ lỗi không dây hoặc qua máy tính. Sau đó mở lại SenceLab và cho phép khi Shizuku yêu cầu cấp quyền."],
       ["ADB WiFi", "Ghép đôi bằng mã ngay trong SenceLab.", "wifi", "mint", "Bật Gỡ lỗi không dây, chọn Ghép nối thiết bị bằng mã rồi nhập mã từ thông báo SenceLab. Quay lại bấm Bắt đầu."],
-      ["SAF V1", "Chọn Android/data/com.garena.game.kgvn/files rồi xác nhận.", "file", "amber", "Chọn thư mục /storage/emulated/0/Android/data/com.garena.game.kgvn/files rồi bấm Sử dụng thư mục này. App tự tìm Extra/2022.V3/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle. Trên các phiên bản Android mới, trình chọn thư mục chuẩn hạn chế quyền vào Android/data của ứng dụng khác."],
-      ["SAF V2", "Chọn đúng tệp scene_artist_autochess_01.assetbundle.", "file", "amber", "Chọn tệp /storage/emulated/0/Android/data/com.garena.game.kgvn/files/Extra/2022.V3/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle. Bấm tên tệp để xác nhận. SAF V2 chọn tệp, còn SAF V1 chọn thư mục. Cả hai mục SAF đều tuân theo giới hạn của bộ chọn tệp trên thiết bị."],
+      ["SAF V1", "Chọn Android/data/com.garena.game.kgvn/files rồi xác nhận.", "file", "amber", "Chọn thư mục /storage/emulated/0/Android/data/com.garena.game.kgvn/files rồi bấm Sử dụng thư mục này. App tự tìm Resources/1.64.1/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle. Trên các phiên bản Android mới, trình chọn thư mục chuẩn hạn chế quyền vào Android/data của ứng dụng khác."],
+      ["SAF V2", "Chọn đúng tệp scene_artist_autochess_01.assetbundle.", "file", "amber", "Chọn tệp /storage/emulated/0/Android/data/com.garena.game.kgvn/files/Resources/1.64.1/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle. Bấm tên tệp để xác nhận. SAF V2 chọn tệp, còn SAF V1 chọn thư mục. Cả hai mục SAF đều tuân theo giới hạn của bộ chọn tệp trên thiết bị."],
       ["LDPlayer trực tiếp", "Cấp quyền bộ nhớ và ghi thẳng tệp trên Android 9.", "file", "mint", "Cho phép SenceLab truy cập bộ nhớ. App ghi trực tiếp tệp map tại đường dẫn cố định trên Android 9 trở xuống."],
     ];
     const contactLinks = {
@@ -504,6 +481,8 @@
     }
 
     function driveCatalog() {
+      if (catalogKind === 'Mod skin') return (skinLoading ? '<p class="muted">Đang tải Mod skin…</p>' : skinError ? '<p class="muted">' + escapeText(skinError) + '</p>' : '') + (!skinLoading && !skinError && !skinEntries.length ? '<p class="muted">Chưa có Mod skin.</p>' : '') + '<div class="pack-grid">' + skinEntries.map((entry,index) => '<button class="card pack-tile" data-action="skin-entry-' + index + '"><img src="' + escapeText(entry.image) + '" alt="Ảnh xem trước SkinChess" loading="lazy"><strong>' + escapeText(entry.name) + '</strong></button>').join('') + '</div>';
+
       const query = app.query.trim().toLocaleLowerCase("vi");
       const entries = driveEntries.map((entry, index) => ({ ...entry, index }))
         .filter(entry => entry.name.toLocaleLowerCase("vi").includes(query));
@@ -518,34 +497,31 @@
       home: () => '<div class="greeting"><p>Chào bạn 👋</p><h1>Chúc bạn một ngày tốt lành.</h1></div>' +
         '<section class="cover">' + (app.pack?.image ? '<img src="' + app.pack.image + '" alt="">' : "") +
         '<div class="cover-content"><div class="eyebrow">File mod đang dùng</div><h2>' +
-        escapeText(app.pack?.name || "Chưa áp dụng file mod") + '</h2></div></section>' +
+        escapeText(app.pack?.name || "Chưa áp dụng file mod") + '</h2>' + (app.skinActive ? '<small class="skin-active">Đang dùng SkinChess</small>' : '') + '</div></section>' +
         button("Gỡ mod", "restore", "secondary full restore-button", applying) +
         '<h2>Trạng thái</h2><div id="home-permissions">' + homePermissions() + '</div>' +
         '<section aria-labelledby="hot-title"><h2 id="hot-title">HOT</h2><div id="hot-results" aria-live="polite">' +
         hotRanking() + '</div></section>',
-      catalog: () => title("Kho Map", "Chọn map để xem ảnh và áp dụng.") +
-        '<h2>Lịch sử dùng</h2>' + (usedMaps.length ? '<ul class="import-history">' +
-          usedMaps.slice(0, historyCollapsed ? 1 : 10).map(map => '<li class="card">' + escapeText(map.name) + '</li>').join("") +
-          '</ul>' + (usedMaps.length >= 3 ? button(historyCollapsed ? "Xem thêm" : "Thu gọn", "history-toggle", "secondary full") : "") : '<p class="muted">Chưa áp dụng map nào.</p>') +
-        '<input class="search" id="search" type="search" aria-label="Tìm tên map" placeholder="Tìm tên map" value="' + escapeText(app.query) + '">' +
+      catalog: () => '<h1>Kho</h1><div class="catalog-subtitle"><p class="intro">Khám phá map cờ và mod skin.</p>' + button('Lịch Sử','catalog-history','history-text') + '</div>' +
+        '<div class="import-kind-tabs" role="group" aria-label="Danh mục kho">' + ['Map cờ','Mod skin'].map((kind,i) => '<button class="import-kind kind-' + (i === 0 ? 1 : 2) + (catalogKind === kind ? ' selected' : '') + '" data-action="catalog-kind-' + i + '" aria-pressed="' + (catalogKind === kind) + '">' + kind + '</button>').join('') + '</div>' +
+        (catalogKind === 'Map cờ' ? '<input class="search" id="search" type="search" aria-label="Tìm tên map" placeholder="Tìm tên map" value="' + escapeText(app.query) + '">'  : '') +
         '<div id="drive-results">' + driveCatalog() + '</div>',
-      import: () => '<div class="import-heading"><h1>Nhập</h1><small>(tính năng beta không khuyến khích sử dụng)</small></div><p class="intro">Nhập tệp Map 5v5, Map cờ hoặc Skin.</p>' +
-        '<section class="upload card">' + symbol("file", "mint") + button("Nhập tệp", "pick", "primary full") +
-        '</section>' + row("Fix Resources", "Nhập res và dọn tài nguyên cũ", "wrench", "lilac", "demo-resources") + '<h2>Đã nhập</h2>' + (app.bundles.filter(x => x.category !== "Res").length ? '<div class="pack-grid">' + app.bundles.filter(x => x.category !== "Res").map((file,index) =>
-        '<article class="card imported-tile"><div class="imported-cover ' + (file.category === "Skin" ? 'pink' : file.category === "Map cờ" ? 'mint' : 'lilac') + '">' + icon(file.category === "Skin" ? "crown" : "file") + '</div><div class="imported-info"><small>' + escapeText(file.category || "Map cờ") + '</small><strong>' + escapeText(file.name) + '</strong><div class="imported-actions">' + button("Áp dụng", "demo-apply-" + index) + button("Xóa", "demo-delete-" + index, "secondary") + '</div></div></article>').join("") + '</div>' : '<p class="muted">Chưa nhập tệp nào.</p>'),
-      resources: () => '<div class="resources-title"><h1>Fix Resources</h1><button class="resources-trash" data-action="demo-delete-res" aria-label="Xóa res cũ" title="Xóa res cũ">' + icon("trash") + '</button></div><p class="intro">Nhập res rồi chọn tệp muốn áp dụng.</p>' +
-        '<section class="card resources-status" role="status"><span class="status-dot ' + (selectedDemoResourcePath?.checking ? 'yellow' : !selectedDemoResourcePath?.ready ? 'red' : (activeDemoResource && activeDemoResourcePath?.id === selectedDemoResourcePath?.id) ? 'green' : 'yellow') + '"></span><div><small>Trạng thái tài nguyên</small><strong>' + (selectedDemoResourcePath?.checking ? 'Đang kiểm tra đường dẫn…' : !selectedDemoResourcePath?.ready ? 'Chưa có quyền bộ nhớ' : (activeDemoResource && activeDemoResourcePath?.id === selectedDemoResourcePath?.id) ? 'Đang dùng ' + escapeText(activeDemoResource.name) : 'Chưa fix') + '</strong></div></section>' +
-        '<div class="resource-input-actions">' + button("Nhập", "demo-import-res", "primary") +
-        '<select id="demo-resource-path-select" class="resource-path-select" aria-label="Đường dẫn đã thêm"><option value=""' + (!selectedDemoResourcePath?.ready ? ' selected' : '') + ' disabled>Đường dẫn đã thêm</option>' + demoResourcePaths.map((path,index) => '<option value="' + index + '"' + (selectedDemoResourcePath === path ? ' selected' : '') + '>' + escapeText(path.name) + '</option>').join("") + '</select>' +
-        button("Chọn Z", "demo-res-path", "secondary") + '</div>' +
-        '<h2>Res đã nhập</h2>' +
-        (demoResourceFiles.length ? '<ul class="import-history resource-import-list">' + demoResourceFiles.map((file,index) => '<li class="card"><span><strong>' + escapeText(file.name) + '</strong><small>' + (file.size / 1024).toFixed(1) + ' KB</small></span>' + button((activeDemoResource === file && activeDemoResourcePath?.id === selectedDemoResourcePath?.id) ? "Đang dùng" : "Áp dụng", "demo-res-apply-" + index, "primary", (activeDemoResource === file && activeDemoResourcePath?.id === selectedDemoResourcePath?.id)) + button("Xóa", "demo-res-delete-" + index, "secondary") + '</li>').join("") + '</ul>' : '<p class="muted">Chưa nhập tệp res.</p>'),
+      history: () => title('Lịch sử dùng', 'Chọn nội dung để nhập pass và áp dụng lại.') +
+        (usedMaps.length ? '<div class="pack-grid">' + usedMaps.map((item,index) => {
+          const pack = [...driveEntries, ...skinEntries].find(entry => entry.id === item.id) || item;
+          return '<button class="card pack-tile" data-action="history-pack-' + index + '">' + (pack.image ? '<img src="' + escapeText(pack.image) + '" alt="" loading="lazy">' : '<span class="history-placeholder">' + icon('map') + '</span>') + '<strong>' + escapeText(pack.name) + '</strong></button>';
+        }).join('') + '</div>' : '<p class="muted">Chưa có lịch sử sử dụng.</p>'),
+      import: () => title("Nhập", "Chọn loại tệp, nhập và đặt tên để lưu vào danh sách.") +
+        '<div class="import-kind-tabs" role="group" aria-label="Loại tệp">' + ['Map 5v5','Map cờ','Skin'].map((kind,i) => '<button class="import-kind kind-' + i + (kind === importKind ? ' selected' : '') + '" data-action="import-demo-kind-' + i + '" aria-pressed="' + (kind === importKind) + '">' + kind + '</button>').join('') + '</div>' +
+        '<div class="import-tools">' + button('Nhập', 'import-demo-pick', 'primary') + '<select class="import-route" aria-label="Đường dẫn áp dụng"><option value="garena">Liên Quân · garena</option></select>' + button('Chọn Z', 'import-demo-choose-z', 'primary', true) + '</div>' +
+        '<h2>Đã nhập</h2>' + (demoImports.some(f => f.category === importKind) ? '<ul class="import-demo-list">' + demoImports.filter(f => f.category === importKind).map(f => '<li class="card"><div class="import-demo-info"><strong>' + escapeText(f.name) + '</strong><small>' + ((f.bytes || 0) / 1048576).toFixed(1) + ' MB</small></div><div class="import-demo-actions">' + button('Áp dụng','import-demo-apply-' + f.localId) + button('Xóa','import-demo-delete-' + f.localId,'secondary') + '</div></li>').join('') + '</ul>' : '<p class="muted">Chưa nhập tệp ' + importKind + '.</p>'),
+
       permissions: () => title("Quyền", "Thiết lập quyền trước khi áp dụng map.") +
         permissionSummary() +
         row("Cấp quyền bộ nhớ", "Chọn hoặc đổi phương thức truy cập", "wrench", "lilac", "access") +
         row("Kiểm tra quyền", "Kiểm tra quyền ghi vào tệp đích", "info", "mint", "permission-check") +
         row("Kiểm tra tệp đang dùng", "Đối chiếu nội dung bundle trên máy", "file", "lilac", "verify-map") +
-        row("Fix Data", "Bấm vào đây khi đã kết nối nhưng chưa có quyền ghi!", "wrench", "pink", "fix-data") +
+        row("Fix Resources", "Bấm vào đây khi đã kết nối nhưng chưa có quyền ghi!", "wrench", "pink", "fix-data") +
         row("Hướng dẫn cấp quyền", "Xem các bước thiết lập", "info", "pink", "guide") +
         button("Đặt lại tất cả quyền", "permission-reset", "secondary full"),
       access: () => title("Cấp quyền bộ nhớ", "Chọn cách cấp quyền để SenceLab ghi file vào trò chơi.") +
@@ -557,11 +533,11 @@
         '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>',
       settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.1.5</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.2.0</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Tính năng chưa ra mắt", "Đang phát triển", "info", "lilac")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v2.1.5 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v2.2.0 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Ảnh và tệp tạm · <b>" + cacheLabel() + "</b>", "Xóa", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -570,7 +546,7 @@
       guide: () => '<h1>Hướng dẫn</h1><div class="guide-list">' +
         guides.map(([name, summary, , image], index) =>
           '<button class="card guide-card" data-action="guide-item-' + index + '">' +
-          '<img src="./preview-assets/' + image + '.png" alt="" loading="lazy" decoding="async"><span><strong>' + name + '</strong><small>' +
+          '<img src="preview-assets/' + image + '.png" alt="" loading="lazy" decoding="async"><span><strong>' + name + '</strong><small>' +
           summary + '</small></span>' + symbol("play") + '</button>').join("") + '</div>'
     };
 
@@ -588,7 +564,7 @@
       const headerMode = isTab ? "tabs" : "back";
       if (header.dataset.mode !== headerMode) {
         header.dataset.mode = headerMode;
-        header.innerHTML = (isTab ? '<span class="symbol brand-mark"><img src="./preview-assets/sencelab-logo.png" alt=""></span>' : '<button class="icon-button" aria-label="Quay lại" data-action="back">' + icon("left") + '</button>') +
+        header.innerHTML = (isTab ? '<span class="symbol brand-mark"><img src="preview-assets/sencelab-logo.png" alt=""></span>' : '<button class="icon-button" aria-label="Quay lại" data-action="back">' + icon("left") + '</button>') +
           '<span class="brand">SenceLab<small>Liên Quân Mobile</small></span>' + (isTab ? '<button class="icon-button" aria-label="Hướng dẫn" data-action="guide">' + icon("info") + '</button>' : "");
       }
       nav.hidden = !isTab;
@@ -620,17 +596,18 @@
     }
 
     function showPack(pack) {
+      if (!pack) return;
       app.pending = pack;
       dialog.innerHTML = '<h2 id="dialog-title">' + escapeText(pack.name) + '</h2>' +
         (pack.image ? '<img src="' + escapeText(pack.image) + '" alt="Ảnh xem trước ' + escapeText(pack.name) + '">' : "") +
-        (pack.detail ? '<p>' + escapeText(pack.detail) + '</p>' : "") + (pack.image
+        (pack.detail ? '<p>' + escapeText(pack.detail) + '</p>' : "") + (pack.image && pack.category !== "Mod skin"
           ? '<label class="pass-label" for="map-pass">Pass</label><input class="search" id="map-pass" autocomplete="off" aria-describedby="pass-error"' +
             (app.admin ? (pack.bundleId ? ' type="text" placeholder="Đang đọc pass.txt…"' : ' type="text" value="0001" readonly') : ' type="password"') +
             '><p id="pass-error" class="pass-error" role="alert" hidden></p>'
           : '') + '<div class="dialog-actions">' + button("Đóng", "close", "secondary") +
         button("Áp dụng", "apply") + '</div>';
       dialog.showModal();
-      if (pack.bundleId && !pack.passId) {
+      if (pack.category !== "Mod skin" && pack.bundleId && !pack.passId) {
         const error = dialog.querySelector("#pass-error");
         error.textContent = "Map này chưa có pass.txt công khai.";
         error.hidden = false;
@@ -671,14 +648,6 @@
       render();
     });
 
-    document.addEventListener("change", event => {
-      if (event.target.id === "demo-resource-path-select") {
-        selectedDemoResourcePath = demoResourcePaths[Number(event.target.value)] || null;
-        if (selectedDemoResourcePath) selectedDemoResourcePath.checking = true;
-        render();
-        if (selectedDemoResourcePath) native.authorizeResourcePath(selectedDemoResourcePath.id);
-      }
-    });
     document.addEventListener("input", event => {
       if (event.target.id === "search") {
         app.query = event.target.value;
@@ -691,27 +660,6 @@
       }
     });
 
-    function applyImportedFile(file, route, confirmed = false) {
-      if (applying) return;
-      if (!confirmed && ["Map 5v5", "Skin"].includes(file.category)) {
-        pendingImportTarget = file;
-        dialog.innerHTML = '<h2 id="dialog-title">Chọn đường dẫn đã thêm</h2><p>Áp dụng ' + escapeText(file.name) + ' vào Resources tại đường dẫn bạn chọn.</p><label class="pass-label" for="import-resource-path">Đường dẫn đích</label><select class="search" id="import-resource-path">' + demoResourcePaths.map(path => '<option value="' + escapeText(path.id) + '">' + escapeText(path.name) + '</option>').join("") + '</select><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Áp dụng", "confirm-import-path") + '</div>' + button("Thêm đường dẫn", "demo-res-path", "secondary full");
-        if (!dialog.open) dialog.showModal();
-        return;
-      }
-      applying = true;
-      dialog.innerHTML = '<h2 id="dialog-title">Đang áp dụng…</h2><p>Đang chuẩn bị dữ liệu…</p><progress style="width:100%"></progress>';
-      if (!dialog.open) dialog.showModal();
-      native.applyImported(file.localId, route);
-    }
-
-    function confirmImportedDelete(file) {
-      if (!file) return;
-      dialog.innerHTML = '<h2 id="dialog-title">Xóa tệp đã nhập?</h2><p>Xóa ' + escapeText(file.name) +
-        ' khỏi SenceLab?</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") +
-        button("Xóa", "confirm-delete-import-" + file.localId, "secondary restore-button") + '</div>';
-      if (!dialog.open) dialog.showModal();
-    }
     function applyPack(pack) {
       if (applying) return;
       applying = true;
@@ -726,11 +674,31 @@
       const action = event.target.closest("[data-action]")?.dataset.action;
       if (!action) return;
       if (action.startsWith("tab-")) return go(action.slice(4));
+      if (action.startsWith('skin-entry-')) return showPack(skinEntries[Number(action.slice(11))]);
+      if (action === 'catalog-history') return go('history', true);
+      if (action.startsWith('history-pack-')) {
+        const item = usedMaps[Number(action.slice(13))];
+        if (item) showPack(driveEntries.find(entry => entry.id === item.id) || item);
+        return;
+      }
       if (action.startsWith("drive-entry-")) return showPack(driveEntries[Number(action.slice(12))]);
       if (action.startsWith("hot-pack-")) return showPack(hotPacks[Number(action.slice(9))]);
       if (action.startsWith("local-apply-")) return applyPack(app.bundles[Number(action.slice(12))]);
-      if (action.startsWith("delete-bundle-")) return confirmImportedDelete(app.bundles[Number(action.slice(14))]);
-      if (action.startsWith("confirm-delete-import-")) return native.deleteBundle(action.slice("confirm-delete-import-".length));
+      if (action.startsWith('catalog-kind-')) { catalogKind = ['Map cờ','Mod skin'][Number(action.slice(13))]; app.query = ''; render(); return; }
+      if (action.startsWith('import-demo-kind-')) { importKind = ['Map 5v5','Map cờ','Skin'][Number(action.slice(17))]; render(); return; }
+      if (action === 'import-demo-choose-z') return;
+      if (action === 'import-demo-pick') { native.chooseImport(importKind); return; }
+      if (action.startsWith('import-demo-apply-')) {
+        const file = app.bundles.find(file => file.localId === action.slice(18));
+        if (file) applyPack(file);
+        return;
+      }
+      if (action.startsWith('import-demo-delete-')) {
+        const id = action.slice(19), file = app.bundles.find(file => file.localId === id); if (!file) return;
+        dialog.innerHTML = '<h2 id="dialog-title">Xóa tệp đã nhập?</h2><p>Xóa “' + escapeText(file.name) + '” khỏi danh sách đã nhập?</p><div class="dialog-actions">' + button('Hủy','close','secondary') + button('Xóa','import-demo-confirm-' + id) + '</div>'; dialog.showModal(); return;
+      }
+      if (action.startsWith('import-demo-confirm-')) { native.deleteBundle(action.slice(20)); return; }
+      if (action.startsWith("delete-bundle-")) return native.deleteBundle(app.bundles[Number(action.slice(14))].localId);
       if (action.startsWith("guide-item-")) {
         const [name, , detail] = guides[Number(action.slice(11))];
         dialog.innerHTML = '<h2 id="dialog-title">' + name + '</h2><p>' + detail + '</p>' +
@@ -757,71 +725,7 @@
         return;
       }
 
-      if (action.startsWith("demo-res-delete-")) {
-        const index = Number(action.slice("demo-res-delete-".length));
-        const file = demoResourceFiles[index];
-        if (!file) return;
-        dialog.innerHTML = '<h2 id="dialog-title">Xóa res đã nhập?</h2><p>Xóa ' + escapeText(file.name) + ' khỏi danh sách đã nhập.</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Xóa", "demo-res-confirm-delete-" + index, "secondary restore-button") + '</div>';
-        if (!dialog.open) dialog.showModal(); return;
-      }
-      if (action.startsWith("demo-res-confirm-delete-")) {
-        const file = demoResourceFiles[Number(action.slice("demo-res-confirm-delete-".length))];
-        if (file) native.deleteBundle(file.localId);
-        return;
-      }
-      if (action.startsWith("demo-res-apply-")) {
-        const file = demoResourceFiles[Number(action.slice("demo-res-apply-".length))];
-        if (file) applyImportedFile(file, selectedDemoResourcePath?.id || "default");
-        return;
-      }
-      if (action.startsWith("demo-apply-")) {
-        const file = app.bundles.filter(x => x.category !== "Res")[Number(action.slice("demo-apply-".length))];
-        if (file) applyImportedFile(file, "default");
-        return;
-      }
-      if (action.startsWith("demo-delete-")) {
-        const file = app.bundles.filter(x => x.category !== "Res")[Number(action.slice("demo-delete-".length))];
-        confirmImportedDelete(file);
-        return;
-      }
-      if (action.startsWith("demo-type-")) {
-        demoCategory = ["Map 5v5", "Map cờ", "Skin"][Number(action.slice("demo-type-".length))];
-        dialog.close(); native.chooseImport(demoCategory); return;
-      }
       switch (action) {
-        case "confirm-import-path": {
-          const route = dialog.querySelector("#import-resource-path")?.value;
-          if (!route || !pendingImportTarget) break;
-          const file = pendingImportTarget; pendingImportTarget = null;
-          applyImportedFile(file, route, true); break;
-        }
-        case "demo-res-path":
-          dialog.innerHTML = '<h2 id="dialog-title">Thêm đường dẫn</h2><p>Nhập thư mục cha chứa Resources. Khi áp dụng, SenceLab sẽ thử ghi trực tiếp và xác minh kết quả.</p><label class="pass-label" for="resource-path-name">Tên đường dẫn</label><input id="resource-path-name" class="search" maxlength="60" placeholder="Ví dụ: Resources Liên Quân"><label class="pass-label" for="resource-path-value">Đường dẫn</label><input id="resource-path-value" class="search" placeholder="/storage/emulated/0/Android/data/com.garena.game.kgvn/files"><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Lưu đường dẫn", "demo-res-save-path") + '</div>' + button("Chọn bằng ZArchiver", "choose-resource-folder", "secondary full");
-          if (!dialog.open) dialog.showModal(); break;
-        case "choose-resource-folder": {
-          const input = dialog.querySelector("#resource-path-name");
-          const name = input.value.trim(); if (!name) { input.focus(); break; }
-          native.chooseResourcePath(name); break;
-        }
-        case "demo-res-save-path": {
-          const nameInput = dialog.querySelector("#resource-path-name");
-          const pathInput = dialog.querySelector("#resource-path-value");
-          const name = nameInput.value.trim(), path = pathInput.value.trim();
-          if (!name) { nameInput.focus(); break; }
-          if (!path) { pathInput.focus(); break; }
-          dialog.innerHTML = '<h2 id="dialog-title">Đang lưu đường dẫn…</h2><p>Lưu vị trí dùng cho Resources.</p><progress></progress>';
-          native.addResourcePath(name, path); break;
-        }
-        case "demo-import-res": demoCategory = "Res"; native.chooseImport("Res"); break;
-        case "demo-resources":
-          if (dialog.open) dialog.close();
-          go("resources", true); native.resourceState(); break;
-        case "demo-delete-res":
-          dialog.innerHTML = '<h2 id="dialog-title">Xóa res cũ?</h2><p>Xóa các thư mục Resources1, Resources2… trong đường dẫn đang chọn. Resources đang dùng được giữ lại.</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Xóa res cũ", "demo-delete-res-confirm", "secondary restore-button") + '</div>';
-          dialog.showModal(); break;
-        case "demo-delete-res-confirm":
-          dialog.innerHTML = '<h2 id="dialog-title">Đang xóa res cũ…</h2><progress></progress>';
-          native.deleteResources(selectedDemoResourcePath?.id || "default"); break;
         case "saf-zarchiver":
           app.mode = "SAF V2";
           awaitingMemory = true;
@@ -847,11 +751,12 @@
         case "reset-confirm": native.resetApp(); break;
         case "history-toggle": historyCollapsed = !historyCollapsed; render(); break;
         case "fix-data":
-          notice("Đã kết nối nhưng chưa có quyền ghi?", "Fix Data thử tạo lại dữ liệu Extra để xử lý lỗi chưa ghi được tệp sau khi kết nối. Hãy đóng trò chơi trước. App tải extra.zip, giữ dữ liệu cũ tại Extra1 rồi thay thư mục Extra. Có thể dùng Shizuku, ADB WiFi, ADB LDPlayer hoặc SAF có quyền sửa thư mục files. Nếu Android chặn thao tác này, app sẽ báo lỗi.", "fix-data-confirm");
+          notice("Đã kết nối nhưng chưa có quyền ghi?", "Làm mới tài nguyên để khắc phục lỗi áp dụng map. Hãy đóng trò chơi trước khi tiếp tục. Quá trình này có thể mất vài phút.", "fix-data-confirm");
           break;
         case "fix-folder": native.fixFolder(); break;
         case "fix-data-confirm":
-          notice("Fix Data", "Đang tải và giải nén dữ liệu. Vui lòng chờ…");
+          dialog.innerHTML = '<h2 id="dialog-title">Đang làm mới tài nguyên</h2><p>Vui lòng chờ…</p><progress aria-label="Tiến độ làm mới tài nguyên" style="width:100%"></progress>';
+          if (!dialog.open) dialog.showModal();
           native.fixData();
           break;
         case "adb-settings": native.adbSettings(); break;
@@ -914,7 +819,7 @@
           break;
         case "admin":
           dialog.innerHTML = '<h2 id="dialog-title">Admin Login</h2>' + (app.admin
-            ? '<p>Đã đăng nhập Admin.</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Đăng xuất", "admin-logout", "secondary") + '</div>'
+            ? '<p>Đã đăng nhập Admin.</p><div class="dialog-actions">' + button("Hủy", "close", "secondary") + button("Đăng xuất", "admin-logout", "secondary") + button("Đặt lại", "reset-app", "secondary restore-button") + '</div>'
             : '<form id="admin-form">' +
               '<label class="pass-label" for="admin-user">Tài khoản</label><input class="search" id="admin-user" name="username" autocomplete="username" required>' +
               '<label class="pass-label" for="admin-password">Mật khẩu</label><input class="search" id="admin-password" name="password" type="password" autocomplete="current-password" required>' +
@@ -932,9 +837,7 @@
         case "community-youtube": case "community-tiktok": case "community-telegram":
           native.openExternal(contactLinks[action]);
           break;
-        case "pick":
-          dialog.innerHTML = '<h2 id="dialog-title">Chọn loại tệp</h2><div class="import-types">' + ["Map 5v5", "Map cờ", "Skin"].map((type,index) => button(type, "demo-type-" + index, "secondary full")).join("") + '</div>' + button("Hủy", "close", "secondary full");
-          dialog.showModal(); break;
+        case "pick": native.chooseAssetBundle(); break;
         case "save-bundle": {
           const input = dialog.querySelector("#bundle-name");
           const name = input.value.trim();
@@ -942,7 +845,7 @@
             input.focus();
             break;
           }
-          dialog.innerHTML = '<h2 id="dialog-title">Đang nhập AssetBundle…</h2><progress aria-label="Đang nhập"></progress>';
+          dialog.innerHTML = '<h2 id="dialog-title">Đang nhập tệp…</h2><progress aria-label="Đang nhập"></progress>';
           native.saveBundle(name);
           break;
         }
@@ -951,7 +854,7 @@
           applyPack({ ...app.pending, enteredPass: dialog.querySelector("#map-pass")?.value.trim() });
           break;
         case "restore": {
-          dialog.innerHTML = '<h2 id="dialog-title">Gỡ mod?</h2><p>Khôi phục bản đồ mặc định của trò chơi và gỡ bản mod đang dùng. Hãy đóng trò chơi trước khi tiếp tục.</p><div class="dialog-actions">' +
+          dialog.innerHTML = '<h2 id="dialog-title">Gỡ mod?</h2><p>Xóa tệp map mod trong Resources để trò chơi sử dụng bản đồ mặc định. SkinChess vẫn được giữ nguyên. Hãy đóng trò chơi trước khi tiếp tục.</p><div class="dialog-actions">' +
             button("Hủy", "close", "secondary") + button("Gỡ mod", "confirm-restore") + '</div>';
           dialog.showModal();
           break;
@@ -959,7 +862,7 @@
         case "confirm-restore":
           if (applying) break;
           applying = true;
-          dialog.innerHTML = '<h2 id="dialog-title">Đang khôi phục…</h2><p>Đang tải dữ liệu bản đồ mặc định…</p><progress aria-label="Đang khôi phục"></progress>';
+          dialog.innerHTML = '<h2 id="dialog-title">Đang gỡ mod…</h2><p>Đang tải dữ liệu bản đồ mặc định…</p><progress aria-label="Đang khôi phục"></progress>';
           native.restore();
           break;
         case "close": app.pending = null; dialog.close(); break;
@@ -1046,32 +949,7 @@
       if (!dialog.open) dialog.showModal();
     }
     window.senceResult = (event, result) => {
-      if (event === "resource-permission") {
-        demoResourcePaths = result.paths || demoResourcePaths;
-        selectedDemoResourcePath = demoResourcePaths.find(path => path.id === result.route) || selectedDemoResourcePath;
-        if (selectedDemoResourcePath) selectedDemoResourcePath.checking = false;
-        if (app.page === "resources") render();
-        return;
-      }
-      if (event === "resource-state" || event === "resource-paths") {
-        if (result.error) { notice("Đường dẫn Resources", result.error); return; }
-        demoResourcePaths = result.paths || [];
-        selectedDemoResourcePath = demoResourcePaths.find(x => x.id === result.selected) || demoResourcePaths.find(x => x.id === selectedDemoResourcePath?.id) || demoResourcePaths[0] || null;
-        if (result.active) { activeDemoResource = app.bundles.find(x => x.localId === result.active.localId) || result.active; activeDemoResourcePath = demoResourcePaths.find(x => x.id === result.active.route) || null; }
-        if (event === "resource-paths" && dialog.open) dialog.close();
-        if (app.page === "resources") render();
-        if (event === "resource-paths" && pendingImportTarget) applyImportedFile(pendingImportTarget, selectedDemoResourcePath?.id || "default");
-        return;
-      }
-      if (event === "resource-delete") { notice("Xóa res cũ", result.message || result.error); return; }
-      if (event === "import-apply") {
-        applying = false;
-        native.resourceState();
-        if (result.error) { notice("Chưa áp dụng được", result.error); return; }
-        if (result.category === "Map cờ") { app.pack = result.pack; dialog.close(); go("home"); }
-        else { if (result.category === "Res") { activeDemoResource = app.bundles.find(x => x.localId === result.active.localId) || result.active; activeDemoResourcePath = demoResourcePaths.find(x => x.id === result.active.route) || null; } render(); }
-        notice("Áp dụng thành công", (result.message || "Đã thay và xác minh tệp map.") + " Hãy tắt Shizuku và gỡ lỗi khi dùng xong."); return;
-      }
+      if (typeof result.skinActive === "boolean") app.skinActive = result.skinActive;
       if (event === "zarchiver") { awaitingMemory = false; notice("ZArchiver", result.error || result.message); return; }
       if (event === "permissions-reset") {
         notice("Đặt lại quyền", result.message || result.error);
@@ -1109,7 +987,8 @@
       }
       if (event === "fix-folder") { notice("Quyền thư mục", result.message || result.error); return; }
       if (event === "fix-data") {
-        notice("Fix Data", result.message || result.error || "Không sửa được dữ liệu.");
+        if (!result.error) { app.pack = JSON.parse(native.active() || "null"); render(); }
+        notice("Fix Resources", result.message || result.error || "Không sửa được dữ liệu.");
         if (result.needsFolder) dialog.insertAdjacentHTML("beforeend", button("Cấp quyền thư mục files", "fix-folder", "secondary full"));
         native.checkMemory();
         return;
@@ -1136,7 +1015,6 @@
         return;
       }
       if (event === "permission") {
-        native.resourceState();
         memoryStatus = result.message || result.error || "Chưa có quyền ghi.";
         if (result.shizuku && result.adb && result.saf) memoryDetails = result;
         if (awaitingMemory && result.selectedReady && result.selectedMethod === app.mode) {
@@ -1149,7 +1027,7 @@
           delete dialog.dataset.awaiting;
           dialog.innerHTML = '<h2 id="dialog-title">Kiểm tra quyền</h2>' +
             (result.error ? '<p>' + escapeText(result.error) + '</p>' : permissionDetails()) +
-            (result.canFix ? '<p>Đã kết nối nhưng chưa có quyền ghi. Bạn có thể thử Fix Data sau khi đóng trò chơi.</p>' + button("Fix Data", "fix-data", "secondary restore-button full") : "") +
+            (result.canFix ? '<p>Đã kết nối nhưng chưa có quyền ghi. Bạn có thể thử Fix Resources sau khi đóng trò chơi.</p>' + button("Fix Resources", "fix-data", "secondary restore-button full") : "") +
             button("Đóng", "close", "primary full");
         }
         const home = document.querySelector("#home-permissions");
@@ -1176,6 +1054,13 @@
           return;
         }
       }
+      if (event === "skins") {
+        skinLoading = false;
+        skinError = result.error || '';
+        if (result.entries) { skinEntries = result.entries; }
+        if (app.page === 'catalog' && catalogKind === 'Mod skin') document.querySelector('#drive-results').innerHTML = driveCatalog();
+        return;
+      }
       if (event === "drive") {
         driveLoading = false;
         driveStatus = result.error || "";
@@ -1193,11 +1078,11 @@
         }
         if (event === "apply" && result.permissionAction) {
           notice("Quyền ghi tệp", result.error);
-          dialog.insertAdjacentHTML("beforeend", button(result.permissionAction === "access" ? "Cấp quyền bộ nhớ" : "Fix Data", result.permissionAction, "secondary full"));
+          dialog.insertAdjacentHTML("beforeend", button(result.permissionAction === "access" ? "Cấp quyền bộ nhớ" : "Fix Resources", result.permissionAction, "secondary full"));
           native.checkMemory();
         } else if ((event === "restore") && memoryDetails?.canFix && /quyền ghi|chưa có quyền/i.test(result.error)) {
-          notice("Chưa có quyền ghi", result.error + " Bạn có thể thử Fix Data sau khi đóng trò chơi.");
-          dialog.insertAdjacentHTML("beforeend", button("Fix Data", "fix-data", "secondary restore-button full"));
+          notice("Chưa có quyền ghi", result.error + " Bạn có thể thử Fix Resources sau khi đóng trò chơi.");
+          dialog.insertAdjacentHTML("beforeend", button("Fix Resources", "fix-data", "secondary restore-button full"));
         } else notice("Thao tác chưa hoàn tất", result.error);
         return;
       }
@@ -1217,25 +1102,25 @@
       }
       if (event === "bundles") {
         app.bundles = result.entries;
-        demoResourceFiles = app.bundles.filter(x => x.category === "Res");
-        if (activeDemoResource) activeDemoResource = app.bundles.find(x => x.localId === activeDemoResource.localId) || activeDemoResource;
+        demoImports = app.bundles;
         if (dialog.open) dialog.close();
         app.feedback = result.message;
-        if (["import", "resources"].includes(app.page)) render();
+        if (app.page === "import") render();
         return;
       }
       if (event === "apply" || event === "restore") {
         app.pack = result.pack || null;
-        if (event === "apply" && app.pack?.image) {
-          const id = app.pack.id || app.pack.name;
-          usedMaps = [{ id, name: app.pack.name }, ...usedMaps.filter(item => item.id !== id)].slice(0, 10);
-          localStorage.setItem("sence.usedMaps", JSON.stringify(usedMaps));
+        const applied = result.applied || (event === 'apply' ? app.pack : null);
+        if (event === "apply" && applied?.image) {
+          const id = applied.id || applied.name;
+          usedMaps = [{ id, name: applied.name, image: applied.image, category: applied.category, bundleId: applied.bundleId, passId: applied.passId }, ...usedMaps.filter(item => item.id !== id)].slice(0, 10);
+          localStorage.setItem("sence.2.2.0.usedMaps", JSON.stringify(usedMaps));
         }
         if (dialog.open) dialog.close();
         go("home");
-        app.feedback = result.message || (event === "apply" ? "Đã ghi và xác minh tệp đích." : "Đã khôi phục tệp gốc.");
+        app.feedback = result.message || (event === "apply" ? "Đã ghi và xác minh tệp đích." : "Đã xóa tệp map mod.");
         render();
-        notice(event === "apply" ? "Đã áp dụng map" : "Đã gỡ mod", "Hoàn tất. Trước khi mở ứng dụng ngân hàng, hãy dừng Shizuku, tắt Gỡ lỗi USB, Gỡ lỗi không dây và Tùy chọn nhà phát triển trong Cài đặt Android. Một số ứng dụng ngân hàng kiểm tra các thiết lập này.");
+        notice(event === 'apply' ? 'Đã áp dụng' : 'Đã gỡ mod', (result.message || 'Đã hoàn tất.') + (['Shizuku', 'ADB WiFi'].includes(result.accessMethod) ? ' Trước khi dùng ứng dụng ngân hàng, hãy dừng Shizuku và tắt Gỡ lỗi USB, Gỡ lỗi không dây, Tùy chọn nhà phát triển.' : ''));
       }
     };
     nav.innerHTML = tabs.map(([page, label, glyph]) =>
@@ -1243,7 +1128,7 @@
     render();
     native.checkMemory();
     native.autoVersion();
-    native.resourceState();
+    native.loadSkins();
     refreshDrive();
   </script>
 </body>

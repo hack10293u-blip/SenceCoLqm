@@ -237,9 +237,9 @@ internal class LocalAdbWifi(
 
     fun isConnected(): Boolean = connected && manager.isConnected
 
-    fun resourceStore(root: String = GAME_FILES): ResourceStore {
+    fun resourceStore(): ResourceStore {
         check(isConnected()) { "Hãy kết nối ADB trước." }
-        val directory = allowedResourceRoot(root).path
+        val directory = GAME_FILES
         fun path(relative: String): String {
             require(relative.split('/').none { it == ".." || it == "." } && !relative.startsWith('/'))
             return "'" + ("$directory/$relative").replace("'", "'\\''") + "'"
@@ -255,6 +255,8 @@ internal class LocalAdbWifi(
                 return object : FilterInputStream(stream.openInputStream()) { override fun close() = stream.close() }
             }
             override fun write(relative: String, input: InputStream) {
+                path(relative)
+                mkdir(relative.substringBeforeLast('/', ""))
                 manager.openStream("sync:").use { stream ->
                     val output = java.io.DataOutputStream(stream.openOutputStream())
                     fun packet(name: String, bytes: ByteArray) {
@@ -284,38 +286,11 @@ internal class LocalAdbWifi(
     }
 
     @Synchronized fun fixData(file: File) {
-        check(isConnected()) { "Hãy kết nối ADB WiFi hoặc ADB LDPlayer." }
-        val wrapped = validateExtraArchive(file)
-        val archive = "/data/local/tmp/sencelab-${java.util.UUID.randomUUID()}.zip"
-        fun command(script: String): String = manager.openStream("exec:$script")
-            .use { it.openInputStream().bufferedReader().readText() }
-        try {
-            manager.openStream("exec:head -c ${file.length()} > '$archive' && printf done").use { stream ->
-                file.inputStream().use { it.copyTo(stream.openOutputStream()) }
-                stream.openOutputStream().flush()
-                check(stream.openInputStream().bufferedReader().readText() == "done") { "Không chuyển được ZIP vào ADB." }
-            }
-            val parent = "/storage/emulated/0/Android/data/com.garena.game.kgvn/files"
-            val stage = "$parent/SenceLabExtraPending"
-            val source = if (wrapped) "$stage/Extra" else stage
-            val target = "2022.V3/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle"
-            val script = "if [ -e '$parent/Extra1' ]; then printf 'Extra1 đã tồn tại'; " +
-                "elif [ ! -d '$parent/Extra' ]; then printf 'Không thấy Extra'; " +
-                "elif mkdir '$stage'; then " +
-                "if unzip -oq '$archive' -d '$stage' && [ -s '$source/$target' ] && mv '$parent/Extra' '$parent/Extra1'; then " +
-                "if mv '$source' '$parent/Extra'; then printf FIX_OK; else mv '$parent/Extra1' '$parent/Extra'; printf 'Không thay được Extra'; fi; " +
-                "else printf 'Không giải nén hoặc đổi tên được Extra'; fi; rm -rf '$stage'; else printf 'Không tạo được thư mục tạm'; fi"
-            val result = command(script)
-            check(result.trim() == "FIX_OK") { "Fix Data qua ADB thất bại: $result" }
-        } finally {
-            runCatching { command("rm -f '$archive'") }
-        }
+        file.inputStream().use { ResourceInstaller.install(resourceStore(), it, true, workDirectory = context.cacheDir) }
     }
-
-    @Synchronized fun canWrite(): Boolean = isConnected() && runCatching {
-        manager.openStream("exec:if [ -f '$GAME_MAP_PATH' ] && [ -r '$GAME_MAP_PATH' ] && [ -w '$GAME_MAP_PATH' ]; then printf yes; fi")
-            .use { it.openInputStream().bufferedReader().readText() == "yes" }
-    }.getOrDefault(false)
+    @Synchronized fun canWrite(): Boolean = isConnected() && runCatching { probeResourceWrite(resourceStore()) }.getOrDefault(false)
+    fun mapExists(): Boolean = resourceStore().exists(MAP_RELATIVE)
+    fun removeMap() { val store = resourceStore(); if (store.exists(MAP_RELATIVE)) store.delete(MAP_RELATIVE); check(!store.exists(MAP_RELATIVE)) }
 
     fun readMap(): InputStream {
         check(connected) { "Hãy kết nối lại ADB WiFi." }
@@ -326,14 +301,8 @@ internal class LocalAdbWifi(
     }
 
     @Synchronized fun writeMap(file: File) {
-        check(connected && canWrite()) { "ADB WiFi không có quyền ghi tệp map." }
-        manager.openStream("exec:head -c ${file.length()} > '$GAME_MAP_PATH' && printf done")
-            .use { stream ->
-                val output = stream.openOutputStream()
-                file.inputStream().use { it.copyTo(output) }
-                output.flush()
-                check(stream.openInputStream().bufferedReader().readText() == "done") { "ADB WiFi ghi tệp thất bại." }
-            }
+        check(isConnected()) { "Hãy kết nối ADB WiFi." }
+        file.inputStream().use { resourceStore().write(MAP_RELATIVE, it) }
     }
 
     private fun showPairNotification(message: String, replyEnabled: Boolean = true): Boolean {

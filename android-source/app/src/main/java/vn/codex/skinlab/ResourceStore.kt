@@ -10,14 +10,6 @@ import java.util.UUID
 import java.util.zip.ZipInputStream
 
 internal const val GAME_FILES = "/storage/emulated/0/Android/data/com.garena.game.kgvn/files"
-internal fun allowedResourceRoot(path: String): File {
-    require(path.startsWith('/')) { "Nhập đường dẫn đầy đủ." }
-    val entered = File(path).canonicalFile
-    val root = if (entered.name == "Resources") entered.parentFile ?: entered else entered
-    val bases = listOf(GAME_FILES, "/storage/emulated/0/Android/data/com.memecheat.kgvn/files").map { File(it).canonicalPath }
-    require(bases.any { root.path == it || root.path.startsWith(it + File.separator) }) { "Đường dẫn nằm ngoài thư mục files của hai gói trò chơi đã hỗ trợ." }
-    return root
-}
 internal interface ResourceStore {
     fun list(path: String): List<Pair<String, Boolean>>
     fun exists(path: String): Boolean
@@ -38,7 +30,7 @@ internal class DiskResources(private val root: File = File(GAME_FILES)) : Resour
     override fun exists(path: String) = file(path).exists()
     override fun mkdir(path: String) { check(file(path).isDirectory || file(path).mkdirs()) { "Không tạo được $path" } }
     override fun read(path: String) = file(path).inputStream()
-    override fun write(path: String, input: InputStream) { file(path).outputStream().use { input.copyTo(it); it.fd.sync() } }
+    override fun write(path: String, input: InputStream) { mkdir(path.substringBeforeLast('/', "")); file(path).outputStream().use { input.copyTo(it); it.fd.sync() } }
     override fun rename(from: String, to: String) { check(!exists(to) && file(from).renameTo(file(to))) { "Không đổi tên được $from thành $to" } }
     override fun delete(path: String) { check(path.isNotEmpty() && file(path).deleteRecursively()) { "Không xóa được $path" } }
 }
@@ -53,7 +45,7 @@ internal class SafResources(private val resolver: ContentResolver, private val t
         cursor.use { while (it.moveToNext()) result.add(Triple(it.getString(0), it.getString(1) == D.Document.MIME_TYPE_DIR, D.buildDocumentUriUsingTree(tree, it.getString(2)))) }
         return result
     }
-    private fun resolve(path: String): Uri? {
+    fun resolve(path: String): Uri? {
         var current = root
         for (part in path.split('/').filter { it.isNotEmpty() }) current = children(current).firstOrNull { it.first == part }?.third ?: return null
         return current
@@ -67,6 +59,7 @@ internal class SafResources(private val resolver: ContentResolver, private val t
     }
     override fun read(path: String): InputStream = resolver.openInputStream(resolve(path) ?: error("Không thấy $path")) ?: error("Không đọc được $path")
     override fun write(path: String, input: InputStream) {
+        mkdir(path.substringBeforeLast('/', ""))
         val parent = resolve(path.substringBeforeLast('/', "")) ?: error("Không thấy thư mục đích.")
         val uri = resolve(path) ?: D.createDocument(resolver, parent, "application/octet-stream", path.substringAfterLast('/')) ?: error("Không tạo được tệp.")
         (resolver.openOutputStream(uri, "wt") ?: error("Không ghi được $path")).use { input.copyTo(it) }
@@ -100,7 +93,7 @@ internal object ResourceInstaller {
         backups.forEach { store.delete(it.first) }
         return backups.size
     }
-    fun install(store: ResourceStore, input: InputStream, replace: Boolean, phase: (String) -> Unit = {}, workDirectory: File = File(System.getProperty("java.io.tmpdir"))) {
+    fun install(store: ResourceStore, input: InputStream, replace: Boolean, phase: (String) -> Unit = {}, workDirectory: File = File(System.getProperty("java.io.tmpdir") ?: ".")) {
         val work = File.createTempFile("sence-resources-", ".tmp", workDirectory)
         check(work.delete() && work.mkdir()) { "Không tạo được bộ nhớ tạm riêng." }
         val extracted = File(work, "extracted").apply { check(mkdir()) }
@@ -129,7 +122,7 @@ internal object ResourceInstaller {
             check(hash(file.inputStream()).contentEquals(hash(store.read(path)))) { "Tệp sau khi ghi không khớp: $path" }
         }
         try {
-            phase("Đang giải nén trong bộ nhớ riêng của SenceLab…")
+            phase("Đang chuẩn bị tài nguyên…")
             val names = HashSet<String>()
             var bytes = 0L
             ZipInputStream(input).use { zip ->
@@ -157,8 +150,9 @@ internal object ResourceInstaller {
                     zip.closeEntry()
                 }
             }
+            require(payload.any { it.first.startsWith("1.64.1/") }) { "ZIP phải chứa Resources/1.64.1 hoặc 1.64.1 ở thư mục gốc." }
             require(payload.isNotEmpty()) { "ZIP không có tệp dữ liệu." }
-            phase(if (replace) "Đang đổi tên Resources để giữ bản sao…" else "Đang ghi đè các tệp trong Resources…")
+            phase(if (replace) "Đang cập nhật tài nguyên…" else "Đang áp dụng tài nguyên…")
             if (replace && store.exists("Resources")) {
                 val largest = store.list("").mapNotNull { if (it.second && backupName.matches(it.first)) it.first.removePrefix("Resources").toLongOrNull() else null }.maxOrNull() ?: 0
                 check(largest < Long.MAX_VALUE)
@@ -180,7 +174,7 @@ internal object ResourceInstaller {
                 }
                 put(target, file)
             }
-            phase("Đã ghi và xác minh Resources.")
+            phase("Đã cập nhật tài nguyên.")
         } catch (failure: Exception) {
             if (started || backup != null) {
                 val recovered = runCatching {
@@ -201,4 +195,21 @@ internal object ResourceInstaller {
             if (!retain) work.deleteRecursively()
         }
     }
+}
+
+internal const val MAP_RELATIVE = "Resources/1.64.1/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle"
+internal const val SKIN_RELATIVE = "Resources/1.64.1/Databin/Client/AutoChess/ResACChessInfoCfg.bytes"
+
+/** Test a disposable sibling, never create or truncate the actual game file during a check. */
+internal fun probeResourceWrite(store: ResourceStore, target: String = MAP_RELATIVE): Boolean {
+    var parent = target.substringBeforeLast('/', "")
+    try { while (parent.isNotEmpty() && !store.exists(parent)) parent = parent.substringBeforeLast('/', "") } catch (_: Exception) { return false }
+    val scratch = (if (parent.isEmpty()) "" else "$parent/") + ".sencelab-probe-" + UUID.randomUUID()
+    return try {
+        if (store.exists(target)) store.read(target).use { it.read() }
+        store.write(scratch, byteArrayOf(31).inputStream())
+        check(store.read(scratch).use { it.read() } == 31)
+        store.delete(scratch)
+        true
+    } catch (_: Exception) { false } finally { runCatching { if (store.exists(scratch)) store.delete(scratch) } }
 }

@@ -1,0 +1,29 @@
+SenceLab 2.2.0 — versionCode 53 — package com.tmod.kgvn
+Nền: tag 2.0.8 tại https://github.com/hack10293u-blip/SenceCoLqm
+Ngày build: 2026-11-22
+
+Map cờ:
+/storage/emulated/0/Android/data/com.garena.game.kgvn/files/Resources/1.64.1/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle
+Áp dụng: tạo tệp nếu chưa có, ghi đè nếu đã có; kiểm tra SHA-256 sau khi ghi.
+Gỡ mod: xóa tệp trên và xác minh đã xóa, không tải map gốc. Không gỡ SkinChess.
+
+Fix Resources:
+Nguồn Mapgoc: 1TzGAJ018zKwUQx375uJIPH9RGqdrSLu9, tệp Resources.zip.
+Giải nén, giữ Resources cũ tại ResourcesN với số mới không trùng, ghi và xác minh dữ liệu mới.
+ZIP chấp nhận Resources/1.64.1/... hoặc 1.64.1/... tại gốc. Không yêu cầu có sẵn tệp map cờ.
+
+Mod skin:
+Nguồn SkinChess: 16j1Cw6RRJFUWfzRXfQDp3kaGXh81xShg (thư mục gốc do người dùng cung cấp: 1ND7ekYZ_xAf-SUAHXhfZttghw_EyCbtK).
+Ghi đè ResACChessInfoCfg.bytes vào:
+/storage/emulated/0/Android/data/com.garena.game.kgvn/files/Resources/1.64.1/Databin/Client/AutoChess/ResACChessInfoCfg.bytes
+Không pass, không tính lượt tải, không thanh tìm kiếm. Có dòng nhỏ Đang dùng SkinChess trên Trang chủ, độc lập với map đang dùng.
+
+Kho: Map cờ và Mod skin; Lịch Sử mở trang riêng, chọn lại map có bảng pass, skin không pass.
+Nhập: Map 5v5 và Skin nhận ZIP giải nén ghi đè vào Resources; Map cờ nhận .assetbundle dùng chung thao tác map Kho.
+Danh sách: tên, dung lượng MB, Áp dụng, Xóa có xác nhận. Chọn Z chưa gắn chức năng.
+Admin: TTT / 2007, giữ phiên đăng nhập.
+SAF V2 giữ cách chọn tệp sẵn có; không phải quyền cả thư mục nên không giải nén ZIP hoặc ghi skin khác tệp.
+
+GUI demo: preview-2.2.0.html, tạo từ cùng index.html đóng gói APK và preview-bridge-2.2.0.js.
+GUI 2.0.8 giữ nguyên. Nguồn 2.0.8 giữ riêng trong source-2.0.8.zip và tag GitHub.
+Chưa phát hành GitHub. Chưa kiểm chứng quyền thực tế trên điện thoại Android 16/HyperOS 3.

@@ -8,11 +8,11 @@ interface IMapFile {
     void replace(in ParcelFileDescriptor replacement) = 2;
     String probe() = 3;
     void fixData(in ParcelFileDescriptor archive) = 4;
-    void installResources(in ParcelFileDescriptor archive, boolean replace) = 5;
-    int deleteResourceBackups() = 6;
-    boolean canWriteResources() = 7;
-    void installResourcesAt(in ParcelFileDescriptor archive, boolean replace, String root) = 8;
-    int deleteResourceBackupsAt(String root) = 9;
-    boolean canWriteResourcesAt(String root) = 10;
+    void removeMap() = 5;
+    boolean mapExists() = 6;
+    void installArchive(in ParcelFileDescriptor archive, boolean replace) = 7;
+    void writeResource(String relative, in ParcelFileDescriptor replacement) = 8;
+    ParcelFileDescriptor readResource(String relative) = 9;
+    boolean resourceExists(String relative) = 10;
     void destroy() = 16777114;
 }
