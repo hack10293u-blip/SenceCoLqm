@@ -1,10 +1,10 @@
 # SenceLab
 
-Ứng dụng Android quản lý map cờ và Mod skin cho Liên Quân Mobile. Phiên bản hiện tại: **2.2.0**.
+Ứng dụng Android quản lý map cờ và Mod skin cho Liên Quân Mobile. Phiên bản hiện tại: **2.2.5**.
 
 ## Tải ứng dụng
 
-- [Tải SenceLab 2.2.0](https://github.com/hack10293u-blip/SenceCoLqm/releases/tag/2.2.0)
+- [Tải SenceLab 2.2.5](https://github.com/hack10293u-blip/SenceCoLqm/releases/tag/2.2.5)
 - Gói ứng dụng: `com.tmod.kgvn`
 - Android 8.0 trở lên. APK debug để thử nghiệm.
 
@@ -14,8 +14,8 @@
 - **Lịch Sử**: mở lại nội dung đã dùng để áp dụng; map cờ hỏi pass, Mod skin không hỏi pass và không tính lượt tải.
 - **Nhập**: Map cờ nhận `.assetbundle`; Map 5v5 và Skin nhận `.zip`. Danh sách hiển thị MB, có Áp dụng và xác nhận Xóa.
 - **Fix Resources**: làm mới tài nguyên khi đã kết nối nhưng chưa ghi được dữ liệu, giữ bản sao lưu theo số thứ tự.
-- **Gỡ mod**: xóa tệp map cờ trong Resources. Không gỡ SkinChess.
-- **Trang chủ**: trạng thái map và dòng Đang dùng SkinChess hiển thị riêng.
+- **Gỡ mod**: xóa tệp map cờ trong Resources. SkinChess có nút Xóa riêng để khôi phục tệp gốc đã lưu trước khi áp dụng.
+- **Trang chủ**: trạng thái map và trạng thái Skin và nút khôi phục skin gốc hiển thị riêng; Fix ngân hàng chỉ hiện với Shizuku/ADB WiFi đang kết nối.
 - **Cập nhật**: kiểm tra và thông báo bản mới từ GitHub Releases.
 
 Nút **Chọn Z** trong tab Nhập hiện chưa gắn chức năng. Nút chọn ZArchiver của SAF V2 vẫn giữ cách hoạt động từ 2.0.8.
@@ -28,7 +28,7 @@ Vào **Quyền → Cấp quyền bộ nhớ**, chọn Shizuku, ADB WiFi, SAF ho�
 
 ## Thông tin mã nguồn
 
-Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2.2.0` lưu đúng mã phát hành; tag `2.0.8` được giữ làm nền. Những bản 2.1.x đã ngừng phát hành.
+Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2.2.5` lưu đúng mã phát hành; tag `2.0.8` được giữ làm nền. Những bản 2.1.x đã ngừng phát hành.
 
 Đường dẫn map cờ:
 
@@ -43,3 +43,5 @@ Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2
 - [Telegram](https://t.me/ttt_cth)
 - [TikTok](https://tiktok.com/@autochess.lqm)
 - [YouTube](https://www.youtube.com/@battuthanhthan)
+
+ADB WiFi ghép đôi qua thông báo hoặc nhập mã thủ công, không quay hay đọc màn hình. Tab Nhập thử ghi trực tiếp vào Resources của Garena/Memecheat và xác minh sau ghi; quyền thực tế vẫn do Android quản lý.

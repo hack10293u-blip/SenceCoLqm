@@ -1,0 +1,28 @@
+SenceLab 2.2.5 — versionCode 58 — package com.tmod.kgvn
+Nền: source-2.2.4.zip; giữ riêng demo/APK/mã nguồn các bản trước.
+
+ADB WiFi:
+- Khôi phục bảng nhập mã qua thông báo hoặc nhập mã/cổng trong app như 2.0.8.
+- Ghép đôi xong quay lại bấm Bắt đầu để kết nối.
+- Gỡ MediaProjection, service đọc màn hình, quyền foreground media projection và thư viện OCR ML Kit.
+- Giữ các sửa lỗi truyền tệp ADB và chức năng tắt gỡ lỗi đã có.
+
+QR:
+- Thu nhỏ còn tối đa 320px/82vw, bỏ tiêu đề và chữ Ủng hộ.
+- Giữ mã QR nguyên vẹn và chạm ngoài để đóng.
+
+Tab Nhập độc lập:
+- Hai route cố định:
+/storage/emulated/0/Android/data/com.garena.game.kgvn/files/Resources
+/storage/emulated/0/Android/data/com.memecheat.kgvn/files/Resources
+- Áp dụng gọi applyImport riêng; thử ghi trực tiếp, không gọi ADB/Shizuku và không kiểm tra kết nối trước.
+- Map cờ ghi scene_artist_autochess_01.assetbundle trong 1.64.1/assetbundle/modules/autochess.
+- Map 5v5/Skin giải nén ZIP rồi ghi đè các tệp con theo Resources/1.64.1 hoặc 1.64.1 tại gốc ZIP.
+- Có xác minh nội dung sau ghi và phục hồi tệp trước đó khi ghi lỗi.
+- Không cập nhật hay thay luồng trạng thái map của Kho/Trang chủ khi nhập riêng.
+- Đường dẫn được chọn không tự cấp quyền: nếu Android chặn ghi trực tiếp, báo lỗi thay vì báo thành công hoặc đòi chạy lệnh.
+- Nút Chọn Z vẫn chưa gắn chức năng.
+
+Đã kiểm tra build, chữ ký/zip alignment, giao diện, hai route trên thư mục thử nghiệm, ghi đè/ZIP overlay và rollback khi ghi gián đoạn.
+Đã đối chiếu ResourceStore, MapFileService, SkinOriginalBackup, AdbWire, DebugShutdown không đổi so với 2.2.4.
+Chưa kiểm thử quyền ghi trực tiếp trên điện thoại thực tế. Chưa đăng GitHub/cài LDPlayer.

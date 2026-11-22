@@ -55,12 +55,18 @@ class SenceActivity : ComponentActivity() {
     private lateinit var shell: FrameLayout
     @Volatile private var mapService: IMapFile? = null
     private var binding = false
-    private val adbWifi by lazy {
+    private val adbWifi: LocalAdbWifi by lazy {
         LocalAdbWifi(this) { message -> runOnUiThread {
+            adbSetupMessage = message
+            if (message.startsWith("Đã ghép đôi")) adbPaired = true
             emit("adb", JSONObject().put("message", message))
+            emitAdbSetup()
+            if (message.contains("đã kết nối")) checkPermissionState()
         } }
     }
     private var adbStarted = false
+    private var adbPaired = false
+    private var adbSetupMessage = "Chọn cách nhận mã để bắt đầu."
     @Volatile private var resetAllowedAt = Long.MAX_VALUE
     private val legacyStoragePermission = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         checkPermissionState()
@@ -72,10 +78,11 @@ class SenceActivity : ComponentActivity() {
         runCatching { MapFileService().canWrite() }.getOrDefault(false)
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         adbWifi.discoverPairing()
+        emitAdbSetup()
     }
     private val serviceArgs by lazy {
         Shizuku.UserServiceArgs(ComponentName(packageName, MapFileService::class.java.name))
-            .tag("map-file").processNameSuffix("map_file").version(220).daemon(false)
+            .tag("map-file").processNameSuffix("map_file").version(224).daemon(false)
     }
     private val mapConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
@@ -99,6 +106,7 @@ class SenceActivity : ComponentActivity() {
         else if (code == 26) emit("permission", JSONObject().put("message", "Chưa cấp quyền Shizuku."))
     }
     private val backup by lazy { File(filesDir, "original.bundle") }
+    private val skinOriginal by lazy { SkinOriginalBackup(File(filesDir, "skin-original-1.64.1")) }
 
     private val chooseBundle = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@registerForActivityResult
@@ -148,7 +156,7 @@ class SenceActivity : ComponentActivity() {
                 }
                 contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 check(state.edit().putString("fixTree", uri.toString()).commit())
-                JSONObject().put("message", "Đã cấp quyền thư mục. Bấm Fix Resources để tiếp tục.")
+                JSONObject().put("message", "Đã cấp quyền thư mục. Bạn có thể kiểm tra quyền và tiếp tục.")
             }
         }
     }
@@ -212,6 +220,20 @@ class SenceActivity : ComponentActivity() {
         Shizuku.addRequestPermissionResultListener(permissionResult)
         Shizuku.addBinderDeadListener(binderLost)
         Shizuku.addBinderReceivedListenerSticky(binderAvailable)
+    }
+
+    private fun emitAdbSetup() {
+        if (::view.isInitialized && !isDestroyed) emit("adb-setup", JSONObject().put("notifications", adbWifi.notificationsAllowed())
+             .put("reading", false).put("paired", adbPaired).put("connected", adbStarted && adbWifi.isConnected()).put("message", adbSetupMessage))
+    }
+    override fun onResume() {
+        super.onResume()
+        if (::view.isInitialized) { emitAdbSetup(); if (adbStarted) checkPermissionState() }
+    }
+
+    private fun openAdbSettingsOutside() {
+        runCatching { applicationContext.startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)) }
+            .onFailure { adbSetupMessage = "Không mở được cài đặt. Hãy mở Tùy chọn nhà phát triển trên máy."; emitAdbSetup() }
     }
 
     private fun setBarTheme(dark: Boolean) {
@@ -356,6 +378,22 @@ class SenceActivity : ComponentActivity() {
             JSONObject().put("entries", importedBundles()).put("message", "Đã xóa tệp đã nhập.")
         }
 
+        @JavascriptInterface fun applyImport(id: String, route: String) = task("import-applied") {
+            require(bundleLabels.contains(id)) { "Tệp đã bị xóa. Hãy nhập lại." }
+            val file = bundleFile(id)
+            val category = bundleCategories.getString(id, "Map cờ") ?: "Map cờ"
+            val root = importRouteRoot(route)
+            if (category == "Map cờ") validateBundle(file) else validateResourceZip(file)
+            operationPhase("Đang áp dụng tệp đã nhập…")
+            try {
+                val store = DiskResources(root)
+                applyImportedDirect(store, file, category, cacheDir, ::operationPhase)
+            } catch (failure: Exception) {
+                throw IllegalStateException("Chưa ghi được vào thư mục đã chọn. Android phải cho phép ghi thực tế tại đường dẫn này. " + (failure.message ?: ""), failure)
+            }
+            JSONObject().put("message", "Đã áp dụng và xác minh tệp tại đường dẫn đã chọn.").put("route", route)
+        }
+
         @JavascriptInterface fun applyMap(data: String) = task("apply") {
             val pack = JSONObject(data)
             if (pack.optString("category") == "Mod skin") return@task applyOnlineSkin(pack)
@@ -366,8 +404,12 @@ class SenceActivity : ComponentActivity() {
             if (target == null && !shizukuConnected && !adbConnected) return@task JSONObject()
                 .put("error", "Hãy cấp quyền bằng Shizuku, ADB WiFi, ADB LDPlayer hoặc SAF trong Cấp quyền bộ nhớ.")
                 .put("permissionAction", "access")
-            if (target == null) return@task JSONObject().put("error", "Đã kết nối nhưng chưa có quyền ghi. Đóng trò chơi rồi thử Fix Resources.")
-                .put("permissionAction", "fix-data")
+            if (target == null) {
+                val fixedBefore = state.getString("fixedResourcesVersion", "") == "1.64.1"
+                val needsFix = needsResourceFix(true, false, fixedBefore, resourceVersionPresent())
+                return@task JSONObject().put("error", if (needsFix) "Đã kết nối nhưng chưa ghi được tài nguyên. Bạn có thể thử Fix Resources sau khi đóng trò chơi." else "Tài nguyên đã được làm mới trước đó. Hãy kết nối lại hoặc kiểm tra quyền ghi của phiên hiện tại.")
+                    .put("permissionAction", if (needsFix) "fix-data" else "permission-check")
+            }
             applyPack(target, pack)
         }
 
@@ -429,18 +471,87 @@ class SenceActivity : ComponentActivity() {
                     adb -> adbWifi.fixData(archive)
                     else -> archive.inputStream().use { ResourceInstaller.install(SafResources(contentResolver, checkNotNull(tree)), it, true, ::operationPhase, cacheDir) }
                 }
-                state.edit().putBoolean("skinChessActive", false).remove("pack").remove("uri").remove("installedHash").commit()
+                state.edit().putString("fixedResourcesVersion", "1.64.1").putLong("resourcesFixedAt", System.currentTimeMillis()).putBoolean("skinChessActive", false).remove("pack").remove("uri").remove("installedHash").commit()
                 JSONObject().put("skinActive", false).put("message", "Đã làm mới tài nguyên. Bạn có thể kiểm tra quyền và áp dụng map.")
             } finally { archive.delete() }
         }
+        @JavascriptInterface fun disableDebugging() = task("debug-disabled") {
+            when {
+                shizukuConnected() -> checkNotNull(mapService).disableDebugging()
+                adbStarted && adbWifi.isConnected() -> adbWifi.disableDebugging()
+                else -> error("Cần kết nối ADB WiFi hoặc Shizuku để tắt gỡ lỗi tự động.")
+            }
+            fun value(key: String) = runCatching { Settings.Global.getInt(contentResolver, key, -1) }.getOrDefault(-1)
+            var wireless: Int
+            var usb: Int
+            var developer: Int
+            val deadline = android.os.SystemClock.elapsedRealtime() + 6000
+            do {
+                wireless = value("adb_wifi_enabled")
+                usb = value(Settings.Global.ADB_ENABLED)
+                developer = value(Settings.Global.DEVELOPMENT_SETTINGS_ENABLED)
+                if (wireless == 0 && usb == 0 && developer == 0) break
+                Thread.sleep(300)
+            } while (android.os.SystemClock.elapsedRealtime() < deadline)
+            val confirmed = wireless == 0 && usb == 0 && developer == 0
+            if (adbStarted) adbWifi.disconnect()
+            adbStarted = false
+            adbPaired = false
+            state.edit().putBoolean("permissionsReset", true).putStringSet("enabledMethods", setOf("SAF V1", "SAF V2", "LDPlayer trực tiếp")).remove("selectedPermission").commit()
+            runOnUiThread {
+                if (binding || mapService != null) runCatching { Shizuku.unbindUserService(serviceArgs, mapConnection, true) }
+                mapService = null; binding = false
+                emitAdbSetup(); checkPermissionState()
+            }
+            JSONObject().put("verified", confirmed).put("wireless", wireless).put("usb", usb).put("developer", developer)
+                .put("message", if (confirmed) "Đã tắt gỡ lỗi và ngắt kết nối. Bạn nên khởi động lại điện thoại để kết thúc các phiên gỡ lỗi còn lại." else "Đã gửi yêu cầu tắt nhưng chưa xác nhận được tất cả mục. Hãy kiểm tra Gỡ lỗi không dây, Gỡ lỗi USB và Tùy chọn nhà phát triển.")
+        }
+        @JavascriptInterface fun adbSetupState() = runOnUiThread { emitAdbSetup() }
+        @JavascriptInterface fun adbNotifications() = runOnUiThread {
+            if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            else if (!adbWifi.notificationsAllowed()) startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+            else { adbWifi.discoverPairing(); emitAdbSetup() }
+        }
         @JavascriptInterface fun adbSettings() = runOnUiThread {
-            runCatching { startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) }
+            openAdbSettingsOutside()
         }
         @JavascriptInterface fun adbConnect() = runOnUiThread { if (adbStarted) adbWifi.connect() }
         @JavascriptInterface fun adbPair(code: String, port: String) = runOnUiThread { if (adbStarted) adbWifi.pair(code, port) }
         @JavascriptInterface fun adbNotificationSettings() = runOnUiThread {
             runCatching { startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                 .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)) }
+        }
+
+        @JavascriptInterface fun removeSkin() = task("skin-remove") {
+            if (!skinOriginal.valid()) return@task JSONObject().put("error", "Bản skin đã áp dụng trước đây chưa có bản sao gốc. Hãy khôi phục tài nguyên gốc bằng Fix Resources; app sẽ không xóa tệp hiện tại.").put("needsOriginal", true)
+            val original = skinOriginal.requireOriginal()
+            val expected = fileHash(original)
+            val store = resourceStore()
+            val service = if (store == null) mapService?.takeIf { shizukuConnected() } else null
+            check(store != null || service != null) { "Hãy cấp quyền ADB WiFi, Shizuku hoặc SAF V1 cho thư mục skin để khôi phục skin gốc." }
+            val previous = File.createTempFile("before-skin-restore-", ".bytes", filesDir)
+            var retainPrevious = false
+            fun readCurrent(): InputStream = store?.read(SKIN_RELATIVE) ?: ParcelFileDescriptor.AutoCloseInputStream(service!!.readResource(SKIN_RELATIVE))
+            fun put(file: File) {
+                if (store != null) file.inputStream().use { store.write(SKIN_RELATIVE, it) }
+                else ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { service!!.restoreSkin(it) }
+                check(fileHash(file) == readCurrent().use(::digest).toHex()) { "Chưa xác minh được skin sau khi khôi phục." }
+            }
+            try {
+                val existed = store?.exists(SKIN_RELATIVE) ?: service!!.resourceExists(SKIN_RELATIVE)
+                if (existed) readCurrent().use { input -> previous.outputStream().use { copyLimited(input, it) } }
+                operationPhase("Đang khôi phục skin gốc…")
+                try {
+                    put(original)
+                    check(readCurrent().use(::digest).toHex() == expected) { "Skin khôi phục không khớp bản gốc." }
+                } catch (failure: Exception) {
+                    if (existed) retainPrevious = runCatching { put(previous) }.isFailure
+                    if (retainPrevious) error("Khôi phục chưa hoàn tất. Bản gốc vẫn được lưu an toàn. Hãy kết nối lại và thử lại.")
+                    throw failure
+                }
+                check(state.edit().putBoolean("skinChessActive", false).commit())
+                JSONObject().put("skinActive", false).put("message", "Đã khôi phục skin gốc. Map đang dùng được giữ nguyên.")
+            } finally { if (!retainPrevious) previous.delete() }
         }
 
         @JavascriptInterface fun restore() = task("restore") {
@@ -638,7 +749,7 @@ class SenceActivity : ComponentActivity() {
                 bytes += entry.size
                 require(bytes <= archiveLimit) { "Dữ liệu ZIP vượt 4 GB." }
             }
-            require(names.any { it.startsWith("Resources/1.64.1/") || it.startsWith("1.64.1/") }) { "ZIP phải chứa Resources/1.64.1 hoặc 1.64.1 ở thư mục gốc." }
+            require(names.any { it == "Resources/1.64.1" || it == "1.64.1" || it.startsWith("Resources/1.64.1/") || it.startsWith("1.64.1/") }) { "ZIP phải chứa Resources/1.64.1 hoặc 1.64.1 ở thư mục gốc." }
         }
     }
 
@@ -663,6 +774,8 @@ class SenceActivity : ComponentActivity() {
     }
 
     private fun applyOnlineSkin(pack: JSONObject): JSONObject {
+        val wasActive = state.getBoolean("skinChessActive", false)
+        if (wasActive && !skinOriginal.valid()) return JSONObject().put("error", "Skin hiện tại chưa có bản sao gốc. Hãy dùng Fix Resources để khôi phục tài nguyên gốc trước khi áp dụng lại.").put("permissionAction", "fix-data")
         val store = resourceStore()
         val service = if (store == null) mapService?.takeIf { shizukuConnected() } else null
         check(store != null || service != null) { "Hãy cấp quyền thư mục SAF V1, Shizuku, ADB WiFi hoặc LDPlayer. SAF V2 chỉ dùng cho tệp map cờ." }
@@ -688,7 +801,10 @@ class SenceActivity : ComponentActivity() {
                 check(fileHash(file) == current().use(::digest).toHex()) { "Tệp skin sau khi ghi không khớp." }
             }
             val hadOriginal = exists()
-            if (hadOriginal) current().use { input -> snapshot.outputStream().use { copyLimited(input, it) } }
+            require(hadOriginal) { "Không thấy tệp skin gốc trong tài nguyên. Hãy khôi phục bằng Fix Resources trước khi áp dụng skin." }
+            current().use { input -> snapshot.outputStream().use { copyLimited(input, it) } }
+            operationPhase("Đang lưu skin gốc…")
+            skinOriginal.beforeApply(snapshot, wasActive || fileHash(snapshot) == fileHash(downloaded))
             try { put(downloaded) } catch (failure: Exception) {
                 if (hadOriginal) retain = runCatching { put(snapshot) }.isFailure
                 if (retain) error("Ghi skin thất bại. Bản sao cũ được giữ tại ${snapshot.name} trong dữ liệu SenceLab.")
@@ -740,6 +856,14 @@ class SenceActivity : ComponentActivity() {
             mapService?.asBinder()?.isBinderAlive == true
     }.getOrDefault(false)
 
+    private fun resourceVersionPresent(): Boolean? = runCatching {
+        val store = resourceStore()
+        if (store != null) {
+            if (store.list("").none { it.first == "Resources" && it.second }) false
+            else store.list("Resources").any { it.first == "1.64.1" && it.second }
+        } else if (shizukuConnected()) checkNotNull(mapService).resourceExists("Resources/1.64.1") else null
+    }.getOrNull()
+
     private fun checkPermissionState() = task("permission") {
         val shizukuRunning = Shizuku.pingBinder()
         val shizukuGranted = permissionEnabled("Shizuku") && shizukuRunning && runCatching {
@@ -760,6 +884,10 @@ class SenceActivity : ComponentActivity() {
             Triple("SAF V1", saf1Ready, saf1Ready), Triple("SAF V2", saf2Ready, saf2Ready),
             Triple("LDPlayer trực tiếp", directReady, directReady),
         )
+        val fixedBefore = state.getString("fixedResourcesVersion", "") == "1.64.1"
+        val ready = shizukuReady || adbReady || safReady || directReady
+        val versionPresent = resourceVersionPresent()
+        val suggestFix = needsResourceFix(shizukuConnected() || (adbStarted && adbWifi.isConnected()), ready, fixedBefore, versionPresent)
         val selected = methods.firstOrNull { it.first == state.getString("selectedPermission", "") }
         val active = selected?.takeIf { it.second } ?: methods.firstOrNull { it.second }
             ?: selected?.takeIf { it.third } ?: methods.firstOrNull { it.third }
@@ -787,8 +915,9 @@ class SenceActivity : ComponentActivity() {
             .put("summary", active?.let { "${it.first} đã kết nối" } ?: "Chưa có quyền bộ nhớ")
             .put("statusColor", if (active?.second == true) "green" else if (active?.third == true) "yellow" else "red")
             .put("selectedReady", selected?.second == true)
-            .put("selectedMethod", selected?.first ?: "")
-            .put("canFix", (shizukuConnected() || (adbStarted && adbWifi.isConnected())) && !shizukuReady && !adbReady)
+            .put("selectedMethod", selected?.first ?: "").put("activeMethod", active?.first ?: "")
+            .put("resourcesFixed", fixedBefore).put("resourcesWritable", ready).put("resourcesVersionPresent", versionPresent)
+            .put("canFix", suggestFix)
     }
 
     private data class DriveItem(val name: String, val id: String, val folder: Boolean)

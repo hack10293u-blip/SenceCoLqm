@@ -14,5 +14,7 @@ interface IMapFile {
     void writeResource(String relative, in ParcelFileDescriptor replacement) = 8;
     ParcelFileDescriptor readResource(String relative) = 9;
     boolean resourceExists(String relative) = 10;
+    void disableDebugging() = 11;
+    void restoreSkin(in ParcelFileDescriptor original) = 12;
     void destroy() = 16777114;
 }

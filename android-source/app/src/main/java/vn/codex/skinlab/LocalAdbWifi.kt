@@ -107,7 +107,7 @@ internal class LocalAdbWifi(
         address != null && (address.isLoopbackAddress ||
             runCatching { NetworkInterface.getByInetAddress(address) != null }.getOrDefault(false))
 
-    fun pair(code: String, manualPort: String = "") {
+    fun pair(code: String, manualPort: String = "", autoConnect: Boolean = false) {
         if (closed || pairing.get()) return
         if (Build.VERSION.SDK_INT < 30) {
             status("Gỡ lỗi không dây cần Android 11 trở lên.")
@@ -152,6 +152,7 @@ internal class LocalAdbWifi(
                 showPairNotification(message, result.isFailure)
             }
             pairing.set(false)
+            if (result.isSuccess && autoConnect && !closed) connect()
         }
     }
 
@@ -178,11 +179,13 @@ internal class LocalAdbWifi(
             connected = runCatching {
                 (manager.isConnected || manager.connect(loopback, connectionPort())) && manager.isConnected
             }.getOrDefault(false)
-            status(when {
+            val message = when {
                 !connected -> "Chưa kết nối được. Bật Gỡ lỗi không dây và ghép đôi lại nếu cần."
                 canWrite() -> "ADB WiFi đã kết nối và có quyền ghi tệp map."
                 else -> "ADB WiFi đã kết nối, nhưng Android chưa cho ghi tệp map."
-            })
+            }
+            status(message)
+            showPairNotification(if (connected) "$message Chạm để mở SenceLab." else message, !connected)
         }
     }
 
@@ -235,48 +238,59 @@ internal class LocalAdbWifi(
         }
     }
 
+    fun notificationsAllowed(): Boolean = notifications.areNotificationsEnabled() &&
+        (Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) &&
+        notifications.getNotificationChannel(channel)?.importance != NotificationManager.IMPORTANCE_NONE
+
     fun isConnected(): Boolean = connected && manager.isConnected
+
+    private val wire: AdbWire by lazy { AdbWire { service ->
+        check(isConnected()) { "Hãy kết nối lại ADB WiFi." }
+        val stream = manager.openStream(service)
+        object : AdbChannel {
+            override val output = stream.openOutputStream()
+            override val input = object : InputStream() {
+                override fun read(): Int { val byte = ByteArray(1); return if (read(byte, 0, 1) < 0) -1 else byte[0].toInt() and 255 }
+                override fun read(bytes: ByteArray, offset: Int, length: Int): Int {
+                    if (length == 0) return 0
+                    return try { stream.read(bytes, offset, length) } catch (failure: IOException) {
+                        if (stream.isClosed && failure.message?.startsWith("Stream closed") == true) -1 else throw failure
+                    }
+                }
+            }
+            override fun close() { runCatching { stream.close() } }
+        }
+    } }
 
     fun resourceStore(): ResourceStore {
         check(isConnected()) { "Hãy kết nối ADB trước." }
-        val directory = GAME_FILES
-        fun path(relative: String): String {
-            require(relative.split('/').none { it == ".." || it == "." } && !relative.startsWith('/'))
-            return "'" + ("$directory/$relative").replace("'", "'\\''") + "'"
+        fun full(relative: String): String {
+            require(relative.split('/').none { it == ".." || it == "." } && !relative.startsWith('/') && relative.none { it.isISOControl() })
+            return "$GAME_FILES/$relative"
         }
-        fun execute(script: String): String = manager.openStream("exec:$script").use { it.openInputStream().bufferedReader().readText() }
-        fun checked(script: String) { check(execute("$script && printf SENCE_OK").endsWith("SENCE_OK")) { "ADB không thực hiện được thao tác Resources." } }
+        fun quoted(relative: String) = "'" + full(relative).replace("'", "'\\''") + "'"
+        fun checked(script: String): String {
+            val result = wire.command(script)
+            check(result.exitCode == 0) { "ADB chưa thực hiện được thao tác tài nguyên: "+result.output.take(300) }
+            return result.output
+        }
         return object : ResourceStore {
-            override fun list(relative: String): List<Pair<String, Boolean>> = execute("ls -1p ${path(relative)}").lineSequence().filter { it.isNotEmpty() }.map { it.trimEnd('/') to it.endsWith('/') }.toList()
-            override fun exists(relative: String) = execute("[ -e ${path(relative)} ] && printf yes") == "yes"
-            override fun mkdir(relative: String) = checked("mkdir -p ${path(relative)}")
-            override fun read(relative: String): InputStream {
-                val stream = manager.openStream("exec:cat ${path(relative)}")
-                return object : FilterInputStream(stream.openInputStream()) { override fun close() = stream.close() }
+            override fun list(path: String): List<Pair<String, Boolean>> = checked("ls -1p "+quoted(path)).lineSequence().filter { it.isNotEmpty() }.map { it.trimEnd('/') to it.endsWith('/') }.toList()
+            override fun exists(path: String) = wire.command("[ -e "+quoted(path)+" ]").exitCode == 0
+            override fun mkdir(path: String) { checked("mkdir -p "+quoted(path)) }
+            override fun read(path: String): InputStream = wire.receive(full(path))
+            override fun write(path: String, input: InputStream) {
+                mkdir(path.substringBeforeLast('/', ""))
+                wire.send(full(path), input)
             }
-            override fun write(relative: String, input: InputStream) {
-                path(relative)
-                mkdir(relative.substringBeforeLast('/', ""))
-                manager.openStream("sync:").use { stream ->
-                    val output = java.io.DataOutputStream(stream.openOutputStream())
-                    fun packet(name: String, bytes: ByteArray) {
-                        output.write(name.toByteArray(Charsets.US_ASCII)); output.writeInt(Integer.reverseBytes(bytes.size)); output.write(bytes)
-                    }
-                    packet("SEND", "$directory/$relative,33200".toByteArray(Charsets.UTF_8))
-                    val buffer = ByteArray(65536)
-                    while (true) { val size = input.read(buffer); if (size < 0) break; packet("DATA", buffer.copyOf(size)) }
-                    output.writeBytes("DONE"); output.writeInt(Integer.reverseBytes((System.currentTimeMillis() / 1000).toInt())); output.flush()
-                    val response = java.io.DataInputStream(stream.openInputStream())
-                    val code = ByteArray(4); response.readFully(code)
-                    val length = Integer.reverseBytes(response.readInt())
-                    require(length in 0..65536)
-                    val message = ByteArray(length); response.readFully(message)
-                    check(String(code, Charsets.US_ASCII) == "OKAY") { "ADB ghi thất bại: ${String(message, Charsets.UTF_8)}" }
-                }
-            }
-            override fun rename(from: String, to: String) = checked("[ ! -e ${path(to)} ] && mv ${path(from)} ${path(to)}")
-            override fun delete(relative: String) { require(relative.isNotEmpty()); checked("rm -rf ${path(relative)}") }
+            override fun rename(from: String, to: String) { checked("[ ! -e "+quoted(to)+" ] && mv "+quoted(from)+" "+quoted(to)) }
+            override fun delete(path: String) { require(path.isNotEmpty()); checked("rm -rf "+quoted(path)) }
         }
+    }
+
+    fun disableDebugging() {
+        val result = wire.command(DEBUG_SHUTDOWN_COMMAND)
+        check(result.exitCode == 0) { "ADB chưa gửi được yêu cầu tắt gỡ lỗi." }
     }
 
     fun disconnect() {
@@ -292,13 +306,7 @@ internal class LocalAdbWifi(
     fun mapExists(): Boolean = resourceStore().exists(MAP_RELATIVE)
     fun removeMap() { val store = resourceStore(); if (store.exists(MAP_RELATIVE)) store.delete(MAP_RELATIVE); check(!store.exists(MAP_RELATIVE)) }
 
-    fun readMap(): InputStream {
-        check(connected) { "Hãy kết nối lại ADB WiFi." }
-        val stream = manager.openStream("exec:cat '$GAME_MAP_PATH'")
-        return object : FilterInputStream(stream.openInputStream()) {
-            override fun close() = stream.close()
-        }
-    }
+    fun readMap(): InputStream = resourceStore().read(MAP_RELATIVE)
 
     @Synchronized fun writeMap(file: File) {
         check(isConnected()) { "Hãy kết nối ADB WiFi." }
@@ -319,6 +327,9 @@ internal class LocalAdbWifi(
         val notification = Notification.Builder(context, channel)
             .setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle("SenceLab · ADB WiFi")
             .setContentText(message).setStyle(Notification.BigTextStyle().bigText(message)).setOnlyAlertOnce(true)
+        notification.setContentIntent(PendingIntent.getActivity(context, 223,
+            Intent(context, SenceActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)).setAutoCancel(true)
         if (replyEnabled) notification.addAction(action)
         return runCatching { notifications.notify(notificationId, notification.build()) }.isSuccess
     }

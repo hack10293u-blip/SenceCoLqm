@@ -101,6 +101,7 @@ internal object ResourceInstaller {
         val changes = mutableListOf<Pair<String, File?>>()
         val createdDirectories = mutableListOf<String>()
         val payload = mutableListOf<Pair<String, File>>()
+        val requiredDirectories = linkedSetOf<String>()
         var backup: String? = null
         var started = false
         var retain = false
@@ -133,6 +134,11 @@ internal object ResourceInstaller {
                     require(name.isNotEmpty() && !name.startsWith('/') && !name.contains('\\') && !name.contains(':') && name.none { it.isISOControl() } && name.split('/').none { it.isEmpty() || it == "." || it == ".." } && names.add(name)) { "Đường dẫn trong ZIP không hợp lệ hoặc trùng lặp." }
                     require(names.size <= 100000) { "ZIP chứa quá nhiều mục." }
                     val destination = File(extracted, name)
+                    var directory = if (entry.isDirectory) name else name.substringBeforeLast('/', "")
+                    while (directory.isNotEmpty()) {
+                        requiredDirectories.add(directory)
+                        directory = directory.substringBeforeLast('/', "")
+                    }
                     if (entry.isDirectory) check(destination.isDirectory || destination.mkdirs()) else {
                         check(destination.parentFile!!.isDirectory || destination.parentFile!!.mkdirs())
                         destination.outputStream().use { output ->
@@ -150,18 +156,20 @@ internal object ResourceInstaller {
                     zip.closeEntry()
                 }
             }
-            require(payload.any { it.first.startsWith("1.64.1/") }) { "ZIP phải chứa Resources/1.64.1 hoặc 1.64.1 ở thư mục gốc." }
-            require(payload.isNotEmpty()) { "ZIP không có tệp dữ liệu." }
+            require(requiredDirectories.contains("1.64.1")) { "ZIP phải chứa Resources/1.64.1 hoặc 1.64.1 ở thư mục gốc." }
             phase(if (replace) "Đang cập nhật tài nguyên…" else "Đang áp dụng tài nguyên…")
             if (replace && store.exists("Resources")) {
                 val largest = store.list("").mapNotNull { if (it.second && backupName.matches(it.first)) it.first.removePrefix("Resources").toLongOrNull() else null }.maxOrNull() ?: 0
                 check(largest < Long.MAX_VALUE)
                 val nextBackup = "Resources${largest + 1}"
-                store.rename("Resources", nextBackup)
                 backup = nextBackup
+                store.rename("Resources", nextBackup)
             }
             started = true
             ensureDirectory("Resources")
+            for (directory in requiredDirectories.sortedBy { it.count { char -> char == '/' } }) {
+                ensureDirectory("Resources/$directory")
+            }
             for ((name, file) in payload) {
                 val target = "Resources/$name"
                 ensureDirectory(target.substringBeforeLast('/'))
@@ -174,13 +182,26 @@ internal object ResourceInstaller {
                 }
                 put(target, file)
             }
+            phase("Đang kiểm tra đầy đủ thư mục…")
+            val verifiedParents = mutableMapOf<String, List<Pair<String, Boolean>>>()
+            for (directory in requiredDirectories) {
+                val path = "Resources/$directory"
+                val parent = path.substringBeforeLast('/')
+                val children = verifiedParents.getOrPut(parent) { store.list(parent) }
+                check(children.any { it.first == path.substringAfterLast('/') && it.second }) { "Thiếu thư mục sau khi cập nhật: $directory" }
+            }
             phase("Đã cập nhật tài nguyên.")
         } catch (failure: Exception) {
             if (started || backup != null) {
                 val recovered = runCatching {
                     if (replace) {
-                        if (store.exists("Resources")) store.delete("Resources")
-                        backup?.let { store.rename(it, "Resources") }
+                        val existingBackup = backup?.takeIf { store.exists(it) }
+                        if (existingBackup != null) {
+                            if (store.exists("Resources")) store.delete("Resources")
+                            store.rename(existingBackup, "Resources")
+                        } else if (backup == null && started) {
+                            if (store.exists("Resources")) store.delete("Resources")
+                        } else check(store.exists("Resources")) { "Chưa xác định được tài nguyên cũ sau khi mất kết nối." }
                     } else {
                         for ((path, snapshot) in changes.asReversed()) {
                             if (snapshot == null) { if (store.exists(path)) store.delete(path) } else put(path, snapshot)

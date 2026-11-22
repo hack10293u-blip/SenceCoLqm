@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 2.2.0</title>
+  <title>SenceLab 2.2.5</title>
   <style>
     :root {
       color-scheme: dark;
@@ -337,6 +337,32 @@
     .history-placeholder { display:grid; place-items:center; aspect-ratio:1; background:var(--panel); color:var(--lilac); }
     .history-placeholder .icon { width:46px; height:46px; }
       .skin-active { display:inline-block; margin-top:10px; padding:5px 10px; border-radius:9px; font-size:13px; font-weight:700; line-height:1.5; color:#9ff3d4; background:rgba(8,32,29,.88); border:1px solid rgba(159,243,212,.38); text-shadow:none; }
+  
+    .settings-title { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px; }
+    .settings-title h1 { margin:0; }
+    .support-qr-button { color:#7961ba;background:var(--panel);flex:none; }
+    dialog.qr-dialog { width:min(82vw,320px);padding:12px;overflow:hidden; }
+    .qr-dialog h2 { font-size:20px;text-align:center;margin:0 0 16px; }
+    .qr-window { position:relative;aspect-ratio:422/545;overflow:hidden;width:100%;border-radius:15px;background:white; }
+    .qr-window img { position:absolute;left:-18.01%;top:-34.86%;width:135.78%;max-width:none;max-height:none;height:auto;margin:0;border:0;border-radius:0; }
+    .adb-overview { padding:20px;background:color-mix(in srgb,var(--mint) 16%,var(--panel)); }
+    .adb-overview p { margin:8px 0 0;color:var(--muted); }
+    .adb-step { display:flex;gap:13px;padding:20px;margin-top:14px; }
+    .adb-step > div { flex:1;min-width:0; }
+    .adb-step h2 { margin:0 0 7px;font-size:18px; }
+    .adb-step p { margin:0 0 12px;color:var(--muted); }
+    .adb-step-number { display:grid;place-items:center;flex:none;width:28px;height:28px;border-radius:50%;background:var(--mint);color:#18372f;font-weight:700; }
+    .adb-mode-options { display:grid;gap:10px; }
+    .adb-mode { text-align:left;padding:13px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text); }
+    .adb-mode strong,.adb-mode small { display:block; }
+    .adb-mode small { color:var(--muted);margin-top:5px; }
+    .adb-mode.selected { border-color:var(--mint);background:color-mix(in srgb,var(--mint) 14%,var(--panel)); }
+    .adb-ready { color:#27876b;font-weight:700; }
+      .skin-status { display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
+    .skin-remove { padding:5px 11px;min-height:30px;margin-top:10px;border-radius:9px;font-size:13px;font-weight:700;color:#ffd2d8;background:#6c2536;border:1px solid #c8697b;box-shadow:none; }
+    .dialog-actions .skin-remove { margin-top:0;padding:10px 18px; }
+      .bank-fix-button { margin-top:12px; }
+      .skin-check { color:#62ed9c;font-size:16px;margin-left:5px;font-weight:800; }
   </style>
 </head>
 <body>
@@ -349,6 +375,8 @@
   
 <script>
     const paths = {
+      close: '<path d="m6 6 12 12M6 18 18 6"/>',
+      qr: '<path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h2v2h-2zM19 15h2v6h-6v-2M12 3v6M3 12h6m3 0h3m3 0h3M12 15v6"/>',
       bolt: '<path d="m13 2-8 12h6l-1 8 9-12h-6z"/>',
       home: '<path d="m3 11 9-8 9 8M5 9v11h5v-6h4v6h5V9"/>',
       grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
@@ -391,7 +419,7 @@
     let cacheBytes = 0;
     const cacheLabel = () => (cacheBytes / 1048576).toFixed(1) + " MB";
     let historyCollapsed = false;
-    try { usedMaps = JSON.parse(localStorage.getItem("sence.2.2.0.usedMaps") || "[]"); } catch {}
+    try { usedMaps = JSON.parse(localStorage.getItem("sence.2.2.5.usedMaps") || localStorage.getItem("sence.2.2.4.usedMaps") || localStorage.getItem("sence.2.2.3.usedMaps") || localStorage.getItem("sence.2.2.2.usedMaps") || localStorage.getItem("sence.2.2.1.usedMaps") || localStorage.getItem("sence.2.2.0.usedMaps") || "[]"); } catch {}
     const app = {
       page: "home", origins: {}, mode: "", pack: null, bundles: [], pending: null,
       query: "", feedback: "", dark: false, admin: false
@@ -402,6 +430,7 @@
     let catalogKind = 'Map cờ';
     let skinEntries = [];
     let demoImports = app.bundles;
+    let importRoute = "garena";
     let skinLoading = true;
     let skinError = '';
 
@@ -497,7 +526,7 @@
       home: () => '<div class="greeting"><p>Chào bạn 👋</p><h1>Chúc bạn một ngày tốt lành.</h1></div>' +
         '<section class="cover">' + (app.pack?.image ? '<img src="' + app.pack.image + '" alt="">' : "") +
         '<div class="cover-content"><div class="eyebrow">File mod đang dùng</div><h2>' +
-        escapeText(app.pack?.name || "Chưa áp dụng file mod") + '</h2>' + (app.skinActive ? '<small class="skin-active">Đang dùng SkinChess</small>' : '') + '</div></section>' +
+        escapeText(app.pack?.name || "Chưa áp dụng file mod") + '</h2>' + (app.skinActive ? '<div class="skin-status"><small class="skin-active">Skin <span class="skin-check" aria-label="đang áp dụng">✓</span></small>' + button('Xóa','skin-remove','skin-remove') + '</div>' : '') + '</div></section>' +
         button("Gỡ mod", "restore", "secondary full restore-button", applying) +
         '<h2>Trạng thái</h2><div id="home-permissions">' + homePermissions() + '</div>' +
         '<section aria-labelledby="hot-title"><h2 id="hot-title">HOT</h2><div id="hot-results" aria-live="polite">' +
@@ -513,7 +542,7 @@
         }).join('') + '</div>' : '<p class="muted">Chưa có lịch sử sử dụng.</p>'),
       import: () => title("Nhập", "Chọn loại tệp, nhập và đặt tên để lưu vào danh sách.") +
         '<div class="import-kind-tabs" role="group" aria-label="Loại tệp">' + ['Map 5v5','Map cờ','Skin'].map((kind,i) => '<button class="import-kind kind-' + i + (kind === importKind ? ' selected' : '') + '" data-action="import-demo-kind-' + i + '" aria-pressed="' + (kind === importKind) + '">' + kind + '</button>').join('') + '</div>' +
-        '<div class="import-tools">' + button('Nhập', 'import-demo-pick', 'primary') + '<select class="import-route" aria-label="Đường dẫn áp dụng"><option value="garena">Liên Quân · garena</option></select>' + button('Chọn Z', 'import-demo-choose-z', 'primary', true) + '</div>' +
+        '<div class="import-tools">' + button('Nhập', 'import-demo-pick', 'primary') + '<select id="import-route" class="import-route" aria-label="Đường dẫn áp dụng"><option value="garena"' + (importRoute === "garena" ? " selected" : "") + '>Liên Quân · garena</option><option value="memecheat"' + (importRoute === "memecheat" ? " selected" : "") + '>Liên Quân · memecheat</option></select>' + button('Chọn Z', 'import-demo-choose-z', 'primary', true) + '</div>' +
         '<h2>Đã nhập</h2>' + (demoImports.some(f => f.category === importKind) ? '<ul class="import-demo-list">' + demoImports.filter(f => f.category === importKind).map(f => '<li class="card"><div class="import-demo-info"><strong>' + escapeText(f.name) + '</strong><small>' + ((f.bytes || 0) / 1048576).toFixed(1) + ' MB</small></div><div class="import-demo-actions">' + button('Áp dụng','import-demo-apply-' + f.localId) + button('Xóa','import-demo-delete-' + f.localId,'secondary') + '</div></li>').join('') + '</ul>' : '<p class="muted">Chưa nhập tệp ' + importKind + '.</p>'),
 
       permissions: () => title("Quyền", "Thiết lập quyền trước khi áp dụng map.") +
@@ -522,6 +551,7 @@
         row("Kiểm tra quyền", "Kiểm tra quyền ghi vào tệp đích", "info", "mint", "permission-check") +
         row("Kiểm tra tệp đang dùng", "Đối chiếu nội dung bundle trên máy", "file", "lilac", "verify-map") +
         row("Fix Resources", "Bấm vào đây khi đã kết nối nhưng chưa có quyền ghi!", "wrench", "pink", "fix-data") +
+        row("Ngắt kết nối & tắt gỡ lỗi", "Tự động tắt Gỡ lỗi không dây, Gỡ lỗi USB và Tùy chọn nhà phát triển", "close", "pink", "debug-disable") +
         row("Hướng dẫn cấp quyền", "Xem các bước thiết lập", "info", "pink", "guide") +
         button("Đặt lại tất cả quyền", "permission-reset", "secondary full"),
       access: () => title("Cấp quyền bộ nhớ", "Chọn cách cấp quyền để SenceLab ghi file vào trò chơi.") +
@@ -531,13 +561,13 @@
           '<button class="icon-button" style="--accent:var(--' + color + ')" aria-label="Hướng dẫn ' + name +
           '" data-action="help-memory-' + index + '">' + icon("alert") + '</button></div>').join("") + '</div>' +
         '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>',
-      settings: () => '<h1 style="margin-bottom:16px">Cài đặt chung</h1>' +
+      settings: () => '<div class="settings-title"><h1>Cài đặt chung</h1><button class="icon-button support-qr-button" data-action="support-qr" aria-label="Mã QR" title="Mã QR">' + icon('qr') + '</button></div>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.2.0</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.2.5</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Tính năng chưa ra mắt", "Đang phát triển", "info", "lilac")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v2.2.0 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v2.2.5 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Ảnh và tệp tạm · <b>" + cacheLabel() + "</b>", "Xóa", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -584,7 +614,11 @@
     }
 
     function homePermissions() {
+      const activeMethod = memoryDetails?.activeMethod || memoryDetails?.selectedMethod;
+      const showBankFix = memoryDetails?.statusColor === 'green' && ['Shizuku','ADB WiFi'].includes(activeMethod) &&
+        (memoryDetails?.methods || []).some(method => method.name === activeMethod && method.ready);
       return permissionSummary(true) +
+        (showBankFix ? button('Fix ngân hàng', 'debug-disable', 'primary full bank-fix-button') : '') +
         (memoryDetails?.canFix ? button("Fix", "fix-data", "secondary restore-button full") : "");
     }
 
@@ -648,6 +682,7 @@
       render();
     });
 
+    document.addEventListener("change", event => { if(event.target.id === "import-route") importRoute = event.target.value; });
     document.addEventListener("input", event => {
       if (event.target.id === "search") {
         app.query = event.target.value;
@@ -675,6 +710,28 @@
       if (!action) return;
       if (action.startsWith("tab-")) return go(action.slice(4));
       if (action.startsWith('skin-entry-')) return showPack(skinEntries[Number(action.slice(11))]);
+      if (action === 'skin-remove') {
+        dialog.innerHTML='<h2 id="dialog-title">Xóa SkinChess?</h2><p>Khôi phục skin gốc và gỡ SkinChess? Map đang dùng vẫn được giữ lại.</p><div class="dialog-actions">' + button('Hủy','close','secondary') + button('Xóa skin','skin-remove-confirm','skin-remove') + '</div>';
+        dialog.showModal(); return;
+      }
+      if (action === 'skin-remove-confirm') {
+        dialog.innerHTML='<h2 id="dialog-title">Đang khôi phục skin gốc…</h2><p>Vui lòng chờ…</p><progress style="width:100%"></progress>';
+        native.removeSkin(); return;
+      }
+      if (action === 'debug-disable') {
+        notice('Ngắt kết nối & tắt gỡ lỗi?', 'SenceLab sẽ tắt các mục gỡ lỗi và ngắt kết nối hiện tại.', 'debug-disable-confirm'); return;
+      }
+      if (action === 'debug-disable-confirm') {
+        dialog.innerHTML='<h2 id="dialog-title">Đang tắt gỡ lỗi…</h2><p>Vui lòng chờ trong giây lát.</p><progress style="width:100%"></progress>';
+        native.disableDebugging(); return;
+      }
+      if (action === 'support-qr') {
+        dialog.classList.add('qr-dialog');
+        dialog.removeAttribute('aria-labelledby'); dialog.setAttribute('aria-label','Mã QR');
+        dialog.innerHTML = '<div class="qr-window"><img src="preview-assets/support-qr-2.2.1.png" alt="Mã VietQR của TRINH TRUONG THANH, số tài khoản 0927027336"></div>';
+        dialog.showModal(); return;
+      }
+      if (action === 'adb-notifications') { native.adbNotifications(); return; }
       if (action === 'catalog-history') return go('history', true);
       if (action.startsWith('history-pack-')) {
         const item = usedMaps[Number(action.slice(13))];
@@ -690,7 +747,7 @@
       if (action === 'import-demo-pick') { native.chooseImport(importKind); return; }
       if (action.startsWith('import-demo-apply-')) {
         const file = app.bundles.find(file => file.localId === action.slice(18));
-        if (file) applyPack(file);
+        if (file) { dialog.innerHTML='<h2 id="dialog-title">Đang áp dụng…</h2><p>Vui lòng chờ…</p><progress style="width:100%"></progress>'; dialog.showModal(); native.applyImport(file.localId, importRoute); }
         return;
       }
       if (action.startsWith('import-demo-delete-')) {
@@ -872,7 +929,12 @@
       if (applying) event.preventDefault();
       else app.pending = null;
     });
-    dialog.addEventListener("close", () => { delete dialog.dataset.awaiting; });
+    dialog.addEventListener('click', event => {
+      if(!dialog.classList.contains('qr-dialog') || event.target!==dialog)return;
+      const rect=dialog.getBoundingClientRect();
+      if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)dialog.close();
+    });
+    dialog.addEventListener("close", () => { delete dialog.dataset.awaiting; dialog.classList.remove('qr-dialog'); dialog.removeAttribute('aria-label'); dialog.setAttribute('aria-labelledby','dialog-title'); });
     window.senceBack = () => {
       if (dialog.open) {
         lastHomeBack = 0;
@@ -945,10 +1007,21 @@
     function notice(title, message, action = "") {
       dialog.innerHTML = '<h2 id="dialog-title">' + escapeText(title) + '</h2><p>' + escapeText(message) +
         '</p><div class="dialog-actions">' + button("Đóng", "close", "secondary") +
-        (action ? button(action === "fix-data-confirm" ? "Tiếp tục" : "Tải APK", action) : "") + '</div>';
+        (action ? button(action === "fix-data-confirm" ? "Tiếp tục" : action === "debug-disable-confirm" ? "Tắt gỡ lỗi" : "Tải APK", action) : "") + '</div>';
       if (!dialog.open) dialog.showModal();
     }
     window.senceResult = (event, result) => {
+      if(event==='import-applied'){ notice(result.error ? 'Chưa áp dụng được' : 'Đã áp dụng',result.message || result.error); return; }
+      if (event === 'skin-remove') {
+        if (!result.error) { app.skinActive = false; render(); }
+        notice(result.error ? 'Chưa khôi phục được skin gốc' : 'Đã khôi phục skin gốc', result.message || result.error);
+        if(result.needsOriginal) dialog.insertAdjacentHTML('beforeend',button('Fix Resources','fix-data','secondary full'));
+        return;
+      }
+      if (event === 'debug-disabled') {
+        notice(result.verified ? 'Đã tắt gỡ lỗi' : 'Chưa tắt hoàn tất', result.message || result.error || 'Chưa xác nhận được trạng thái gỡ lỗi.');
+        native.checkMemory(); return;
+      }
       if (typeof result.skinActive === "boolean") app.skinActive = result.skinActive;
       if (event === "zarchiver") { awaitingMemory = false; notice("ZArchiver", result.error || result.message); return; }
       if (event === "permissions-reset") {
@@ -1078,7 +1151,7 @@
         }
         if (event === "apply" && result.permissionAction) {
           notice("Quyền ghi tệp", result.error);
-          dialog.insertAdjacentHTML("beforeend", button(result.permissionAction === "access" ? "Cấp quyền bộ nhớ" : "Fix Resources", result.permissionAction, "secondary full"));
+          dialog.insertAdjacentHTML("beforeend", button(result.permissionAction === "access" ? "Cấp quyền bộ nhớ" : result.permissionAction === "permission-check" ? "Kiểm tra quyền" : "Fix Resources", result.permissionAction, "secondary full"));
           native.checkMemory();
         } else if ((event === "restore") && memoryDetails?.canFix && /quyền ghi|chưa có quyền/i.test(result.error)) {
           notice("Chưa có quyền ghi", result.error + " Bạn có thể thử Fix Resources sau khi đóng trò chơi.");
@@ -1114,7 +1187,7 @@
         if (event === "apply" && applied?.image) {
           const id = applied.id || applied.name;
           usedMaps = [{ id, name: applied.name, image: applied.image, category: applied.category, bundleId: applied.bundleId, passId: applied.passId }, ...usedMaps.filter(item => item.id !== id)].slice(0, 10);
-          localStorage.setItem("sence.2.2.0.usedMaps", JSON.stringify(usedMaps));
+          localStorage.setItem("sence.2.2.5.usedMaps", JSON.stringify(usedMaps));
         }
         if (dialog.open) dialog.close();
         go("home");

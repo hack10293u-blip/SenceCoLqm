@@ -33,12 +33,22 @@ class MapFileService : IMapFile.Stub() {
         }
     }
     override fun readResource(relative: String): ParcelFileDescriptor = ParcelFileDescriptor.open(resource(relative), ParcelFileDescriptor.MODE_READ_ONLY)
-    override fun resourceExists(relative: String): Boolean = resource(relative).exists()
+    override fun resourceExists(relative: String): Boolean = try {
+        android.system.Os.stat(resource(relative).path)
+        true
+    } catch (failure: android.system.ErrnoException) {
+        if (failure.errno == android.system.OsConstants.ENOENT || failure.errno == android.system.OsConstants.ENOTDIR) false else throw failure
+    }
     @Synchronized override fun removeMap() {
         val target = resource(MAP_RELATIVE)
         check(!target.exists() || target.delete()) { "Không xóa được tệp map mod." }
         check(!target.exists()) { "Tệp map vẫn còn sau khi xóa." }
     }
     override fun mapExists(): Boolean = resource(MAP_RELATIVE).exists()
+    override fun disableDebugging() {
+        val process = ProcessBuilder("/system/bin/sh", "-c", DEBUG_SHUTDOWN_COMMAND).start()
+        check(process.waitFor() == 0) { "Shizuku chưa gửi được yêu cầu tắt gỡ lỗi." }
+    }
+    @Synchronized override fun restoreSkin(original: ParcelFileDescriptor) = writeResource(SKIN_RELATIVE, original)
     override fun destroy() { kotlin.system.exitProcess(0) }
 }

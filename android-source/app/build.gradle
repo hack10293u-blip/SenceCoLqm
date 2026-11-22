@@ -15,11 +15,19 @@ android {
         applicationId 'com.tmod.kgvn'
         minSdk 26
         targetSdk 35
-        versionCode 53
-        versionName '2.2.0'
+        versionCode 58
+        versionName '2.2.5'
         buildConfigField 'String', 'COUNTER_URL', '"' + counterUrl + '"'
     }
     buildFeatures { compose true; aidl true; buildConfig true }
+    signingConfigs {
+        debug {
+            enableV1Signing true
+            enableV2Signing true
+            enableV3Signing true
+        }
+    }
+    packagingOptions { jniLibs { useLegacyPackaging true } }
     composeOptions { kotlinCompilerExtensionVersion '1.5.14' }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
