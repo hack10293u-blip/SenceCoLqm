@@ -13,7 +13,7 @@
             android:authorities="${applicationId}.shizuku" android:multiprocess="false"
             android:exported="true" android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
         <receiver android:name=".AdbPairReplyReceiver" android:exported="false" />
-        <activity android:name=".SenceActivity" android:exported="true" android:launchMode="singleTask">
+        <activity android:name=".SenceActivity" android:exported="true" android:launchMode="singleTask" android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

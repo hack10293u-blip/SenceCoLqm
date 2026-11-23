@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 2.2.8</title>
+  <title>SenceLab 2.2.9</title>
   <style>
     :root {
       color-scheme: dark;
@@ -419,7 +419,7 @@
     let cacheBytes = 0;
     const cacheLabel = () => (cacheBytes / 1048576).toFixed(1) + " MB";
     let historyCollapsed = false;
-    try { usedMaps = JSON.parse(localStorage.getItem("sence.2.2.8.usedMaps") || localStorage.getItem("sence.2.2.7.usedMaps") || localStorage.getItem("sence.2.2.6.usedMaps") || localStorage.getItem("sence.2.2.5.usedMaps") || localStorage.getItem("sence.2.2.4.usedMaps") || localStorage.getItem("sence.2.2.3.usedMaps") || localStorage.getItem("sence.2.2.2.usedMaps") || localStorage.getItem("sence.2.2.1.usedMaps") || localStorage.getItem("sence.2.2.0.usedMaps") || "[]"); } catch {}
+    try { usedMaps = JSON.parse(localStorage.getItem("sence.2.2.9.usedMaps") || localStorage.getItem("sence.2.2.8.usedMaps") || localStorage.getItem("sence.2.2.7.usedMaps") || localStorage.getItem("sence.2.2.6.usedMaps") || localStorage.getItem("sence.2.2.5.usedMaps") || localStorage.getItem("sence.2.2.4.usedMaps") || localStorage.getItem("sence.2.2.3.usedMaps") || localStorage.getItem("sence.2.2.2.usedMaps") || localStorage.getItem("sence.2.2.1.usedMaps") || localStorage.getItem("sence.2.2.0.usedMaps") || "[]"); } catch {}
     const app = {
       page: "home", origins: {}, mode: "", pack: null, bundles: [], pending: null,
       query: "", feedback: "", dark: false, admin: false
@@ -563,11 +563,11 @@
         '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>',
       settings: () => '<div class="settings-title"><h1>Cài đặt chung</h1><button class="icon-button support-qr-button" data-action="support-qr" aria-label="Mã QR" title="Mã QR">' + icon('qr') + '</button></div>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.2.8</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.2.9</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Tính năng chưa ra mắt", "Đang phát triển", "info", "lilac")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v2.2.8 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v2.2.9 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Ảnh và tệp tạm · <b>" + cacheLabel() + "</b>", "Xóa", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -911,7 +911,7 @@
           applyPack({ ...app.pending, enteredPass: dialog.querySelector("#map-pass")?.value.trim() });
           break;
         case "restore": {
-          dialog.innerHTML = '<h2 id="dialog-title">Gỡ mod?</h2><p>Xóa tệp map mod trong Resources để trò chơi sử dụng bản đồ mặc định. SkinChess vẫn được giữ nguyên. Hãy đóng trò chơi trước khi tiếp tục.</p><div class="dialog-actions">' +
+          dialog.innerHTML = '<h2 id="dialog-title">Gỡ mod?</h2><p>Gỡ map đang dùng để trở về bản đồ mặc định. Skin vẫn được giữ nguyên. Hãy đóng trò chơi trước khi tiếp tục.</p><div class="dialog-actions">' +
             button("Hủy", "close", "secondary") + button("Gỡ mod", "confirm-restore") + '</div>';
           dialog.showModal();
           break;
@@ -1187,7 +1187,7 @@
         if (event === "apply" && applied?.image) {
           const id = applied.id || applied.name;
           usedMaps = [{ id, name: applied.name, image: applied.image, category: applied.category, bundleId: applied.bundleId, passId: applied.passId }, ...usedMaps.filter(item => item.id !== id)].slice(0, 10);
-          localStorage.setItem("sence.2.2.8.usedMaps", JSON.stringify(usedMaps));
+          localStorage.setItem("sence.2.2.9.usedMaps", JSON.stringify(usedMaps));
         }
         if (dialog.open) dialog.close();
         go("home");

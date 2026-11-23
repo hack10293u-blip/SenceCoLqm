@@ -1,0 +1,4 @@
+SenceLab 2.2.9 (62), nền 2.2.8 đã phát hành.
+LDPlayer trực tiếp gỡ map bằng bundle gốc từ Mapgoc, ghi Extra, xác minh SHA-256 và rollback khi lỗi ghi.
+Khóa SenceActivity chiều dọc; giữ backend khác. Chưa thử trên thiết bị thực tế.
+Build hoàn tất; APK xác minh chữ ký khớp 2.2.5, zipalign 16KB, GUI khớp nguồn, giữ constructor Shizuku. Chưa thử trên thiết bị/chưa publish.

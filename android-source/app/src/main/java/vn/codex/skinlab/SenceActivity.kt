@@ -1075,7 +1075,39 @@ class SenceActivity : ComponentActivity() {
     }
 
     private fun restoreOriginalMap(): JSONObject {
-        val target = writableTarget() ?: error("Chưa có quyền xóa tệp map. Hãy cấp quyền bộ nhớ.")
+        val target = writableTarget() ?: error("Chưa có quyền gỡ map. Hãy cấp quyền bộ nhớ.")
+        if (target == directTarget) {
+            val original = File.createTempFile("original-map-", ".bundle", cacheDir)
+            val previous = File.createTempFile("before-map-restore-", ".bundle", filesDir)
+            var retainPrevious = false
+            try {
+                operationPhase("Đang tải map gốc…")
+                val entry = driveList(originalMapFolder).singleOrNull { !it.folder && it.name == targetName }
+                    ?: error("Chưa tìm thấy tệp map gốc. Hãy thử lại sau.")
+                downloadBundle(entry.id, original)
+                val expected = fileHash(original)
+                val existed = targetExists(target)
+                if (existed) readTarget(target).use { input -> previous.outputStream().use { copyLimited(input, it) } }
+                val previousHash = if (existed) fileHash(previous) else ""
+                try {
+                    operationPhase("Đang khôi phục map gốc…")
+                    write(target, original, expected)
+                    operationPhase("Đang xác minh map gốc…")
+                    confirmTarget(target, expected)
+                } catch (failure: Exception) {
+                    retainPrevious = runCatching {
+                        if (existed) write(target, previous, previousHash) else deleteTarget(target)
+                    }.isFailure
+                    if (retainPrevious) error("Khôi phục chưa hoàn tất. Bản chụp tệp trước đó vẫn được giữ. Hãy cấp lại quyền rồi thử lại.")
+                    throw failure
+                }
+                clearRecovery()
+                return JSONObject().put("message", "Đã khôi phục map mặc định.").put("accessMethod", accessMethod(target))
+            } finally {
+                original.delete()
+                if (!retainPrevious) previous.delete()
+            }
+        }
         operationPhase("Đang xóa tệp map mod…")
         deleteTarget(target)
         operationPhase("Đang xác minh đã gỡ…")
