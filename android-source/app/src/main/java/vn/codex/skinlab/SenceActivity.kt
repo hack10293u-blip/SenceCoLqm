@@ -75,7 +75,7 @@ class SenceActivity : ComponentActivity() {
         state.getStringSet("enabledMethods", emptySet()).orEmpty().contains(name)
     private fun directWritable(): Boolean = permissionEnabled("LDPlayer trực tiếp") && Build.VERSION.SDK_INT <= 28 &&
         checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
-        runCatching { MapFileService().canWrite() }.getOrDefault(false)
+        runCatching { MapFileService(File(LDPLAYER_FILES)).canWrite() }.getOrDefault(false)
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         adbWifi.discoverPairing()
         emitAdbSetup()
@@ -466,7 +466,7 @@ class SenceActivity : ComponentActivity() {
                 validateResourceZip(archive)
                 operationPhase("Đang cập nhật tài nguyên…")
                 when {
-                    direct -> archive.inputStream().use { ResourceInstaller.install(DiskResources(), it, true, ::operationPhase, cacheDir) }
+                    direct -> archive.inputStream().use { ResourceInstaller.install(DiskResources(File(LDPLAYER_FILES)), it, true, ::operationPhase, cacheDir) }
                     service != null -> ParcelFileDescriptor.open(archive, ParcelFileDescriptor.MODE_READ_ONLY).use { service.fixData(it) }
                     adb -> adbWifi.fixData(archive)
                     else -> archive.inputStream().use { ResourceInstaller.install(SafResources(contentResolver, checkNotNull(tree)), it, true, ::operationPhase, cacheDir) }
@@ -708,7 +708,7 @@ class SenceActivity : ComponentActivity() {
     }
 
     private fun resourceStore(): ResourceStore? = when {
-        legacyDiskAvailable() -> DiskResources()
+        legacyDiskAvailable() -> DiskResources(File(LDPLAYER_FILES))
         adbStarted && adbWifi.isConnected() -> adbWifi.resourceStore()
         else -> safRootStore()
     }
@@ -722,7 +722,7 @@ class SenceActivity : ComponentActivity() {
 
     private fun targetExists(uri: String): Boolean = when (uri) {
         safTreeTarget -> checkNotNull(safRootStore()).exists(MAP_RELATIVE)
-        directTarget -> File(GAME_MAP_PATH).exists()
+        directTarget -> File(LDPLAYER_MAP_PATH).exists()
         shizukuTarget -> requireShizuku().mapExists()
         adbTarget -> adbWifi.mapExists()
         else -> contentResolver.query(Uri.parse(uri), arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { it.moveToFirst() } == true
@@ -731,7 +731,7 @@ class SenceActivity : ComponentActivity() {
     private fun deleteTarget(uri: String) {
         when (uri) {
             safTreeTarget -> checkNotNull(safRootStore()).let { if (it.exists(MAP_RELATIVE)) it.delete(MAP_RELATIVE) }
-            directTarget -> MapFileService().removeMap()
+            directTarget -> MapFileService(File(LDPLAYER_FILES)).removeMap()
             shizukuTarget -> requireShizuku().removeMap()
             adbTarget -> adbWifi.removeMap()
             else -> check(!targetExists(uri) || DocumentsContract.deleteDocument(contentResolver, Uri.parse(uri))) { "Trình chọn tệp chưa cho phép xóa. Hãy dùng quyền thư mục SAF V1, Shizuku hoặc ADB WiFi." }
@@ -1140,7 +1140,7 @@ class SenceActivity : ComponentActivity() {
     private fun readTarget(uri: String): InputStream =
         when (uri) {
             safTreeTarget -> checkNotNull(safRootStore()).read(MAP_RELATIVE)
-            directTarget -> File(GAME_MAP_PATH).inputStream()
+            directTarget -> File(LDPLAYER_MAP_PATH).inputStream()
             adbTarget -> {
                 check(adbStarted) { "Mở Cấp quyền bộ nhớ và kết nối lại ADB WiFi." }
                 adbWifi.readMap()
@@ -1158,7 +1158,7 @@ class SenceActivity : ComponentActivity() {
             file.inputStream().use { checkNotNull(safRootStore()).write(MAP_RELATIVE, it) }
         } else if (uri == directTarget) {
             check(directWritable()) { "Chưa có quyền ghi trực tiếp." }
-            ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { MapFileService().replace(it) }
+            ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { MapFileService(File(LDPLAYER_FILES)).replace(it) }
         } else if (uri == adbTarget) {
             check(adbStarted) { "Mở Cấp quyền bộ nhớ và kết nối lại ADB WiFi." }
             adbWifi.writeMap(file)

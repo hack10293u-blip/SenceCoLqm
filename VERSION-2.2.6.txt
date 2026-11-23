@@ -1,0 +1,4 @@
+SenceLab 2.2.6 (59), nguồn dựa trên snapshot 2.2.5 đã phát hành.
+LDPlayer trực tiếp dùng com.garena.game.kgvn64x/files cho kiểm tra và thao tác Resources/map/skin. Shizuku/ADB/SAF và tab Nhập giữ nguyên.
+Chưa build APK, chưa publish, chưa thử trên thiết bị.
+Build hoàn tất; APK xác minh chữ ký khớp 2.2.5, zipalign 16KB, GUI khớp nguồn, giữ constructor Shizuku. Chưa thử trên thiết bị/chưa publish.

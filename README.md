@@ -1,10 +1,10 @@
 # SenceLab
 
-Ứng dụng Android quản lý map cờ và Mod skin cho Liên Quân Mobile. Phiên bản hiện tại: **2.2.5**.
+Ứng dụng Android quản lý map cờ và Mod skin cho Liên Quân Mobile. Phiên bản hiện tại: **2.2.6**.
 
 ## Tải ứng dụng
 
-- [Tải SenceLab 2.2.5](https://github.com/hack10293u-blip/SenceCoLqm/releases/tag/2.2.5)
+- [Tải SenceLab 2.2.6](https://github.com/hack10293u-blip/SenceCoLqm/releases/tag/2.2.6)
 - Gói ứng dụng: `com.tmod.kgvn`
 - Android 8.0 trở lên. APK debug để thử nghiệm.
 
@@ -28,7 +28,7 @@ Vào **Quyền → Cấp quyền bộ nhớ**, chọn Shizuku, ADB WiFi, SAF ho�
 
 ## Thông tin mã nguồn
 
-Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2.2.5` lưu đúng mã phát hành; tag `2.0.8` được giữ làm nền. Những bản 2.1.x đã ngừng phát hành.
+Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2.2.6` lưu đúng mã phát hành; tag `2.0.8` được giữ làm nền. Những bản 2.1.x đã ngừng phát hành.
 
 Đường dẫn map cờ:
 
@@ -45,3 +45,5 @@ Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2
 - [YouTube](https://www.youtube.com/@battuthanhthan)
 
 ADB WiFi ghép đôi qua thông báo hoặc nhập mã thủ công, không quay hay đọc màn hình. Tab Nhập thử ghi trực tiếp vào Resources của Garena/Memecheat và xác minh sau ghi; quyền thực tế vẫn do Android quản lý.
+
+Từ 2.2.6, LDPlayer trực tiếp dùng gói com.garena.game.kgvn64x. Các quyền khác và tab Nhập giữ nguyên đường dẫn trước đó.

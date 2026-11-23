@@ -6,11 +6,11 @@ import java.io.File
 internal const val GAME_MAP_PATH = "$GAME_FILES/$MAP_RELATIVE"
 
 /** Binder operations are restricted to this game's Resources directory. */
-class MapFileService : IMapFile.Stub() {
-    private val store = DiskResources()
+class MapFileService(private val gameRoot: File = File(GAME_FILES)) : IMapFile.Stub() {
+    private val store = DiskResources(gameRoot)
     private fun resource(relative: String): File {
         require(relative.startsWith("Resources/") && relative.split('/').none { it.isEmpty() || it == "." || it == ".." })
-        val root = File(GAME_FILES).canonicalFile
+        val root = gameRoot.canonicalFile
         val target = File(root, relative).canonicalFile
         require(target.path.startsWith(root.path + "/Resources/"))
         return target

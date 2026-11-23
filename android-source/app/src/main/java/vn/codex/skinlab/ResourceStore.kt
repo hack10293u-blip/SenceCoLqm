@@ -10,6 +10,7 @@ import java.util.UUID
 import java.util.zip.ZipInputStream
 
 internal const val GAME_FILES = "/storage/emulated/0/Android/data/com.garena.game.kgvn/files"
+internal const val LDPLAYER_FILES = "/storage/emulated/0/Android/data/com.garena.game.kgvn64x/files"
 internal interface ResourceStore {
     fun list(path: String): List<Pair<String, Boolean>>
     fun exists(path: String): Boolean
@@ -219,6 +220,7 @@ internal object ResourceInstaller {
 }
 
 internal const val MAP_RELATIVE = "Resources/1.64.1/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle"
+internal const val LDPLAYER_MAP_PATH = "$LDPLAYER_FILES/$MAP_RELATIVE"
 internal const val SKIN_RELATIVE = "Resources/1.64.1/Databin/Client/AutoChess/ResACChessInfoCfg.bytes"
 
 /** Test a disposable sibling, never create or truncate the actual game file during a check. */
