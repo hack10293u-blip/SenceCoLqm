@@ -220,7 +220,8 @@ internal object ResourceInstaller {
 }
 
 internal const val MAP_RELATIVE = "Resources/1.64.1/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle"
-internal const val LDPLAYER_MAP_PATH = "$LDPLAYER_FILES/$MAP_RELATIVE"
+internal const val LDPLAYER_MAP_RELATIVE = "Extra/2022.V3/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle"
+internal const val LDPLAYER_MAP_PATH = "$LDPLAYER_FILES/$LDPLAYER_MAP_RELATIVE"
 internal const val SKIN_RELATIVE = "Resources/1.64.1/Databin/Client/AutoChess/ResACChessInfoCfg.bytes"
 
 /** Test a disposable sibling, never create or truncate the actual game file during a check. */

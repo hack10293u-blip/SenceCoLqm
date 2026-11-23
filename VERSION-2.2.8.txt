@@ -1,0 +1,4 @@
+SenceLab 2.2.8 (61), nền snapshot 2.2.7.
+Riêng map LDPlayer trực tiếp dùng com.garena.game.kgvn64x/files/Extra/2022.V3/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle. Probe/đọc/ghi/gỡ/xác minh cùng đường dẫn mới.
+Skin, Fix Resources, Shizuku/ADB/SAF và tab Nhập giữ nguyên. Chưa build/publish.
+Build hoàn tất; APK xác minh chữ ký khớp 2.2.5, zipalign 16KB, GUI khớp nguồn, giữ constructor Shizuku. Chưa thử trên thiết bị/chưa publish.
