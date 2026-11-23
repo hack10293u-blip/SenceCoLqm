@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 2.2.6</title>
+  <title>SenceLab 2.2.7</title>
   <style>
     :root {
       color-scheme: dark;
@@ -419,7 +419,7 @@
     let cacheBytes = 0;
     const cacheLabel = () => (cacheBytes / 1048576).toFixed(1) + " MB";
     let historyCollapsed = false;
-    try { usedMaps = JSON.parse(localStorage.getItem("sence.2.2.6.usedMaps") || localStorage.getItem("sence.2.2.5.usedMaps") || localStorage.getItem("sence.2.2.4.usedMaps") || localStorage.getItem("sence.2.2.3.usedMaps") || localStorage.getItem("sence.2.2.2.usedMaps") || localStorage.getItem("sence.2.2.1.usedMaps") || localStorage.getItem("sence.2.2.0.usedMaps") || "[]"); } catch {}
+    try { usedMaps = JSON.parse(localStorage.getItem("sence.2.2.7.usedMaps") || localStorage.getItem("sence.2.2.6.usedMaps") || localStorage.getItem("sence.2.2.5.usedMaps") || localStorage.getItem("sence.2.2.4.usedMaps") || localStorage.getItem("sence.2.2.3.usedMaps") || localStorage.getItem("sence.2.2.2.usedMaps") || localStorage.getItem("sence.2.2.1.usedMaps") || localStorage.getItem("sence.2.2.0.usedMaps") || "[]"); } catch {}
     const app = {
       page: "home", origins: {}, mode: "", pack: null, bundles: [], pending: null,
       query: "", feedback: "", dark: false, admin: false
@@ -535,7 +535,7 @@
         '<div class="import-kind-tabs" role="group" aria-label="Danh mục kho">' + ['Map cờ','Mod skin'].map((kind,i) => '<button class="import-kind kind-' + (i === 0 ? 1 : 2) + (catalogKind === kind ? ' selected' : '') + '" data-action="catalog-kind-' + i + '" aria-pressed="' + (catalogKind === kind) + '">' + kind + '</button>').join('') + '</div>' +
         (catalogKind === 'Map cờ' ? '<input class="search" id="search" type="search" aria-label="Tìm tên map" placeholder="Tìm tên map" value="' + escapeText(app.query) + '">'  : '') +
         '<div id="drive-results">' + driveCatalog() + '</div>',
-      history: () => title('Lịch sử dùng', 'Chọn nội dung để nhập pass và áp dụng lại.') +
+      history: () => title('Lịch sử dùng', 'Chọn nội dung đã dùng để áp dụng lại.') +
         (usedMaps.length ? '<div class="pack-grid">' + usedMaps.map((item,index) => {
           const pack = [...driveEntries, ...skinEntries].find(entry => entry.id === item.id) || item;
           return '<button class="card pack-tile" data-action="history-pack-' + index + '">' + (pack.image ? '<img src="' + escapeText(pack.image) + '" alt="" loading="lazy">' : '<span class="history-placeholder">' + icon('map') + '</span>') + '<strong>' + escapeText(pack.name) + '</strong></button>';
@@ -563,11 +563,11 @@
         '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>',
       settings: () => '<div class="settings-title"><h1>Cài đặt chung</h1><button class="icon-button support-qr-button" data-action="support-qr" aria-label="Mã QR" title="Mã QR">' + icon('qr') + '</button></div>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.2.6</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.2.7</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Tính năng chưa ra mắt", "Đang phát triển", "info", "lilac")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v2.2.6 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v2.2.7 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Ảnh và tệp tạm · <b>" + cacheLabel() + "</b>", "Xóa", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -629,24 +629,24 @@
         (includePicker && color !== "green" ? button("Chọn quyền bộ nhớ", "access", "secondary full") : "") + '</section>';
     }
 
-    function showPack(pack) {
+    function showPack(pack, fromHistory = false) {
       if (!pack) return;
-      app.pending = pack;
+      app.pending = { ...pack, fromHistory };
       dialog.innerHTML = '<h2 id="dialog-title">' + escapeText(pack.name) + '</h2>' +
         (pack.image ? '<img src="' + escapeText(pack.image) + '" alt="Ảnh xem trước ' + escapeText(pack.name) + '">' : "") +
-        (pack.detail ? '<p>' + escapeText(pack.detail) + '</p>' : "") + (pack.image && pack.category !== "Mod skin"
+        (pack.detail ? '<p>' + escapeText(pack.detail) + '</p>' : "") + (pack.image && pack.category !== "Mod skin" && !fromHistory
           ? '<label class="pass-label" for="map-pass">Pass</label><input class="search" id="map-pass" autocomplete="off" aria-describedby="pass-error"' +
             (app.admin ? (pack.bundleId ? ' type="text" placeholder="Đang đọc pass.txt…"' : ' type="text" value="0001" readonly') : ' type="password"') +
             '><p id="pass-error" class="pass-error" role="alert" hidden></p>'
           : '') + '<div class="dialog-actions">' + button("Đóng", "close", "secondary") +
         button("Áp dụng", "apply") + '</div>';
       dialog.showModal();
-      if (pack.category !== "Mod skin" && pack.bundleId && !pack.passId) {
+      if (!fromHistory && pack.category !== "Mod skin" && pack.bundleId && !pack.passId) {
         const error = dialog.querySelector("#pass-error");
         error.textContent = "Map này chưa có pass.txt công khai.";
         error.hidden = false;
         dialog.querySelector('[data-action="apply"]').disabled = true;
-      } else if (pack.bundleId && app.admin) native.mapPass(pack.passId);
+      } else if (!fromHistory && pack.bundleId && app.admin) native.mapPass(pack.passId);
     }
 
     function validMapPass() {
@@ -735,7 +735,7 @@
       if (action === 'catalog-history') return go('history', true);
       if (action.startsWith('history-pack-')) {
         const item = usedMaps[Number(action.slice(13))];
-        if (item) showPack(driveEntries.find(entry => entry.id === item.id) || item);
+        if (item) showPack(driveEntries.find(entry => entry.id === item.id) || item, true);
         return;
       }
       if (action.startsWith("drive-entry-")) return showPack(driveEntries[Number(action.slice(12))]);
@@ -1187,7 +1187,7 @@
         if (event === "apply" && applied?.image) {
           const id = applied.id || applied.name;
           usedMaps = [{ id, name: applied.name, image: applied.image, category: applied.category, bundleId: applied.bundleId, passId: applied.passId }, ...usedMaps.filter(item => item.id !== id)].slice(0, 10);
-          localStorage.setItem("sence.2.2.6.usedMaps", JSON.stringify(usedMaps));
+          localStorage.setItem("sence.2.2.7.usedMaps", JSON.stringify(usedMaps));
         }
         if (dialog.open) dialog.close();
         go("home");

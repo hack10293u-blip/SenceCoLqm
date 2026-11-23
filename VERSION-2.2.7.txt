@@ -1,0 +1,4 @@
+SenceLab 2.2.7 (60), nền snapshot 2.2.6.
+Lịch sử áp dụng lại map không hỏi pass. Kho/HOT vẫn yêu cầu pass; luồng quyền và ghi file giữ nguyên.
+Chưa build/publish.
+Build hoàn tất; APK xác minh chữ ký khớp 2.2.5, zipalign 16KB, GUI khớp nguồn, giữ constructor Shizuku. Chưa thử trên thiết bị/chưa publish.

@@ -1,17 +1,17 @@
 # SenceLab
 
-Ứng dụng Android quản lý map cờ và Mod skin cho Liên Quân Mobile. Phiên bản hiện tại: **2.2.6**.
+Ứng dụng Android quản lý map cờ và Mod skin cho Liên Quân Mobile. Phiên bản hiện tại: **2.2.7**.
 
 ## Tải ứng dụng
 
-- [Tải SenceLab 2.2.6](https://github.com/hack10293u-blip/SenceCoLqm/releases/tag/2.2.6)
+- [Tải SenceLab 2.2.7](https://github.com/hack10293u-blip/SenceCoLqm/releases/tag/2.2.7)
 - Gói ứng dụng: `com.tmod.kgvn`
 - Android 8.0 trở lên. APK debug để thử nghiệm.
 
 ## Tính năng
 
 - **Kho**: danh mục Map cờ online, ảnh xem trước và Mod skin SkinChess.
-- **Lịch Sử**: mở lại nội dung đã dùng để áp dụng; map cờ hỏi pass, Mod skin không hỏi pass và không tính lượt tải.
+- **Lịch Sử**: mở lại nội dung đã dùng để áp dụng; map cờ đã dùng áp dụng lại không nhập pass; Mod skin không hỏi pass và không tính lượt tải.
 - **Nhập**: Map cờ nhận `.assetbundle`; Map 5v5 và Skin nhận `.zip`. Danh sách hiển thị MB, có Áp dụng và xác nhận Xóa.
 - **Fix Resources**: làm mới tài nguyên khi đã kết nối nhưng chưa ghi được dữ liệu, giữ bản sao lưu theo số thứ tự.
 - **Gỡ mod**: xóa tệp map cờ trong Resources. SkinChess có nút Xóa riêng để khôi phục tệp gốc đã lưu trước khi áp dụng.
@@ -28,7 +28,7 @@ Vào **Quyền → Cấp quyền bộ nhớ**, chọn Shizuku, ADB WiFi, SAF ho�
 
 ## Thông tin mã nguồn
 
-Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2.2.6` lưu đúng mã phát hành; tag `2.0.8` được giữ làm nền. Những bản 2.1.x đã ngừng phát hành.
+Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2.2.7` lưu đúng mã phát hành; tag `2.0.8` được giữ làm nền. Những bản 2.1.x đã ngừng phát hành.
 
 Đường dẫn map cờ:
 
@@ -46,4 +46,4 @@ Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2
 
 ADB WiFi ghép đôi qua thông báo hoặc nhập mã thủ công, không quay hay đọc màn hình. Tab Nhập thử ghi trực tiếp vào Resources của Garena/Memecheat và xác minh sau ghi; quyền thực tế vẫn do Android quản lý.
 
-Từ 2.2.6, LDPlayer trực tiếp dùng gói com.garena.game.kgvn64x. Các quyền khác và tab Nhập giữ nguyên đường dẫn trước đó.
+Từ 2.2.7, LDPlayer trực tiếp dùng gói com.garena.game.kgvn64x. Các quyền khác và tab Nhập giữ nguyên đường dẫn trước đó.

@@ -811,7 +811,7 @@ class SenceActivity : ComponentActivity() {
                 throw failure
             }
             check(state.edit().putBoolean("skinChessActive", true).commit())
-            val applied = JSONObject(pack.toString()).apply { remove("enteredPass") }
+            val applied = JSONObject(pack.toString()).apply { remove("enteredPass"); remove("fromHistory") }
             return JSONObject().put("skinActive", true).put("applied", applied).put("pack", state.getString("pack", null)?.let(::JSONObject))
                 .put("message", "Đã ghi và xác minh tệp Mod skin.").put("accessMethod", if (service != null) "Shizuku" else if (legacyDiskAvailable()) "LDPlayer trực tiếp" else if (adbStarted && adbWifi.isConnected()) "ADB WiFi" else "SAF")
         } finally { downloaded.delete(); if (!retain) snapshot.delete() }
@@ -1019,7 +1019,7 @@ class SenceActivity : ComponentActivity() {
         try {
             stagePack(pack, staged)
             operationPhase("Đang xác minh tệp…")
-            val savedPack = JSONObject(pack.toString()).apply { remove("enteredPass") }
+            val savedPack = JSONObject(pack.toString()).apply { remove("enteredPass"); remove("fromHistory") }
             val hadOriginal = targetExists(uri)
             if (hadOriginal) readTarget(uri).use { input -> snapshot.outputStream().use { copyLimited(input, it) } }
             val previousHash = if (hadOriginal) fileHash(snapshot) else ""
@@ -1052,7 +1052,7 @@ class SenceActivity : ComponentActivity() {
             return
         }
         if (pack.has("bundleId")) {
-            require(pack.optString("enteredPass") == drivePass(pack.optString("passId"))) { "Pass không đúng." }
+            require(pack.optBoolean("fromHistory", false) || pack.optString("enteredPass") == drivePass(pack.optString("passId"))) { "Pass không đúng." }
             downloadBundle(pack.getString("bundleId"), output)
             recordDownload(pack.optString("id"))
             return
