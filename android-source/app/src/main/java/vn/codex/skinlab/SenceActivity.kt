@@ -258,6 +258,9 @@ class SenceActivity : ComponentActivity() {
     }
 
     inner class Bridge {
+        @JavascriptInterface fun isLdPlayer(): Boolean = File("/system/bin/ldinit").exists() ||
+            runCatching { packageManager.getPackageInfo("com.ldmnq.launcher3", 0); true }.getOrDefault(false) ||
+            (Build.VERSION.SDK_INT <= 28 && Build.SUPPORTED_ABIS.any { it == "x86" || it == "x86_64" })
         @JavascriptInterface fun chooseZarchiver() = runOnUiThread {
             val packages = listOf("ru.zdevs.zarchiver", "ru.zdevs.zarchiver.pro")
             val intent = packages.map { name ->

@@ -1,0 +1,6 @@
+SenceLab 2.3.1 (64), nền 2.3.0.
+Bỏ maxAspectRatio để điện thoại dùng đầy đủ chiều cao, giữ bố cục 480px cũ. LDPlayer nhận diện ldinit, bật app full width để tương thích nhiều DPI/độ phân giải; giữ portrait.
+Build hoàn tất; APK xác minh chữ ký khớp 2.2.5, zipalign 16KB, GUI khớp nguồn, giữ constructor Shizuku. Chưa thử trên thiết bị/chưa publish.
+Nhận diện dự phòng Android 9 x86/x86_64 cho LDPlayer khi giả lập ẩn file ldinit và launcher khỏi UID app. Điện thoại ARM không bật bố cục giả lập.
+Build hoàn tất; APK xác minh chữ ký khớp 2.2.5, zipalign 16KB, GUI khớp nguồn, giữ constructor Shizuku. Chưa thử trên thiết bị/chưa publish.
+Đã thử LDPlayer: 1080x1920/480, 900x1600/320, 720x1280/320, 540x960/240, 900x1600/240, 900x2000/320. Ảnh DPI240 xác nhận hết dải trống ngang. Đã khôi phục cấu hình giả lập ban đầu; chưa thử điện thoại thật.

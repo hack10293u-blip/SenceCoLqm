@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101017">
-  <title>SenceLab 2.3.0</title>
+  <title>SenceLab 2.3.1</title>
   <style>
     :root {
       color-scheme: dark;
@@ -27,6 +27,7 @@
     button:focus-visible, input:focus-visible { outline: 2px solid var(--lilac); outline-offset: 3px; }
     button:disabled { opacity: .45; cursor: default; }
     .app { max-width: 480px; min-height: 100dvh; display: flex; flex-direction: column; margin: 0 auto; background: var(--bg); box-shadow: 0 0 90px #07060c; }
+    :root[data-ldplayer-viewport] .app { width: 100%; max-width: none; box-shadow: none; }
     header { display: flex; align-items: center; gap: 11px; padding: max(14px, env(safe-area-inset-top)) 20px 12px; min-height: 69px; }
     .brand { font-size: 23px; font-weight: 850; letter-spacing: -.75px; flex: 1; }
     .brand small { display: block; font-size: 12px; font-weight: 650; color: var(--muted); letter-spacing: 0; }
@@ -405,6 +406,9 @@
     const symbol = (name, color = "lilac") => '<span class="symbol" style="--accent:var(--' + color + ')">' + icon(name) + '</span>';
     const escapeText = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
     const native = window.SenceAndroid;
+    if (native && location.pathname === '/android_asset/index.html' && native.isLdPlayer()) {
+      document.documentElement.setAttribute('data-ldplayer-viewport', '');
+    }
     let driveEntries = [];
     let driveStatus = "";
     let driveLoading = false;
@@ -419,7 +423,7 @@
     let cacheBytes = 0;
     const cacheLabel = () => (cacheBytes / 1048576).toFixed(1) + " MB";
     let historyCollapsed = false;
-    try { usedMaps = JSON.parse(localStorage.getItem("sence.2.3.0.usedMaps") || localStorage.getItem("sence.2.2.9.usedMaps") || localStorage.getItem("sence.2.2.8.usedMaps") || localStorage.getItem("sence.2.2.7.usedMaps") || localStorage.getItem("sence.2.2.6.usedMaps") || localStorage.getItem("sence.2.2.5.usedMaps") || localStorage.getItem("sence.2.2.4.usedMaps") || localStorage.getItem("sence.2.2.3.usedMaps") || localStorage.getItem("sence.2.2.2.usedMaps") || localStorage.getItem("sence.2.2.1.usedMaps") || localStorage.getItem("sence.2.2.0.usedMaps") || "[]"); } catch {}
+    try { usedMaps = JSON.parse(localStorage.getItem("sence.2.3.1.usedMaps") || localStorage.getItem("sence.2.3.0.usedMaps") || localStorage.getItem("sence.2.2.9.usedMaps") || localStorage.getItem("sence.2.2.8.usedMaps") || localStorage.getItem("sence.2.2.7.usedMaps") || localStorage.getItem("sence.2.2.6.usedMaps") || localStorage.getItem("sence.2.2.5.usedMaps") || localStorage.getItem("sence.2.2.4.usedMaps") || localStorage.getItem("sence.2.2.3.usedMaps") || localStorage.getItem("sence.2.2.2.usedMaps") || localStorage.getItem("sence.2.2.1.usedMaps") || localStorage.getItem("sence.2.2.0.usedMaps") || "[]"); } catch {}
     const app = {
       page: "home", origins: {}, mode: "", pack: null, bundles: [], pending: null,
       query: "", feedback: "", dark: false, admin: false
@@ -563,11 +567,11 @@
         '<p class="muted" role="status">' + escapeText(memoryStatus) + '</p>',
       settings: () => '<div class="settings-title"><h1>Cài đặt chung</h1><button class="icon-button support-qr-button" data-action="support-qr" aria-label="Mã QR" title="Mã QR">' + icon('qr') + '</button></div>' +
         '<section class="app-profile"><button class="symbol admin-trigger" data-action="admin" aria-label="Admin Login">' +
-        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.3.0</p></section>' +
+        icon("crown") + '</button><h2>SenceLab</h2><p>' + (app.admin ? 'Admin đã đăng nhập · ' : '') + 'Phiên bản 2.3.1</p></section>' +
         group("Chung", row("Chủ đề", app.dark ? "Tối" : "Sáng", "moon", "lilac", "theme")) +
         group("Tiện ích", row("Tính năng chưa ra mắt", "Đang phát triển", "info", "lilac")) +
         group("Hệ thống & hỗ trợ",
-          supportRow("Phiên bản ứng dụng", "v2.3.0 · SenceLab", "Kiểm tra", "version-check") +
+          supportRow("Phiên bản ứng dụng", "v2.3.1 · SenceLab", "Kiểm tra", "version-check") +
           supportRow("Xóa bộ nhớ đệm (Cache)", "Ảnh và tệp tạm · <b>" + cacheLabel() + "</b>", "Xóa", "cache-confirm")) +
         group("Liên hệ", row("Telegram", "Trao đổi và hỗ trợ", "telegram", "mint", "community-telegram") +
           row("TikTok", "Video ngắn và cập nhật", "tiktok", "lilac", "community-tiktok") +
@@ -1187,7 +1191,7 @@
         if (event === "apply" && applied?.image) {
           const id = applied.id || applied.name;
           usedMaps = [{ id, name: applied.name, image: applied.image, category: applied.category, bundleId: applied.bundleId, passId: applied.passId }, ...usedMaps.filter(item => item.id !== id)].slice(0, 10);
-          localStorage.setItem("sence.2.3.0.usedMaps", JSON.stringify(usedMaps));
+          localStorage.setItem("sence.2.3.1.usedMaps", JSON.stringify(usedMaps));
         }
         if (dialog.open) dialog.close();
         go("home");
