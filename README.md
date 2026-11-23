@@ -1,10 +1,10 @@
 # SenceLab
 
-Ứng dụng Android quản lý map cờ và Mod skin cho Liên Quân Mobile. Phiên bản hiện tại: **2.2.9**.
+Ứng dụng Android quản lý map cờ và Mod skin cho Liên Quân Mobile. Phiên bản hiện tại: **2.3.0**.
 
 ## Tải ứng dụng
 
-- [Tải SenceLab 2.2.9](https://github.com/hack10293u-blip/SenceCoLqm/releases/tag/2.2.9)
+- [Tải SenceLab 2.3.0](https://github.com/hack10293u-blip/SenceCoLqm/releases/tag/2.3.0)
 - Gói ứng dụng: `com.tmod.kgvn`
 - Android 8.0 trở lên. APK debug để thử nghiệm.
 
@@ -28,7 +28,7 @@ Vào **Quyền → Cấp quyền bộ nhớ**, chọn Shizuku, ADB WiFi, SAF ho�
 
 ## Thông tin mã nguồn
 
-Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2.2.9` lưu đúng mã phát hành; tag `2.0.8` được giữ làm nền. Những bản 2.1.x đã ngừng phát hành.
+Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2.3.0` lưu đúng mã phát hành; tag `2.0.8` được giữ làm nền. Những bản 2.1.x đã ngừng phát hành.
 
 Đường dẫn map cờ:
 
@@ -46,8 +46,10 @@ Mã Android của phiên bản hiện tại nằm trong `android-source`. Tag `2
 
 ADB WiFi ghép đôi qua thông báo hoặc nhập mã thủ công, không quay hay đọc màn hình. Tab Nhập thử ghi trực tiếp vào Resources của Garena/Memecheat và xác minh sau ghi; quyền thực tế vẫn do Android quản lý.
 
-Từ 2.2.9, LDPlayer trực tiếp dùng gói com.garena.game.kgvn64x. Các quyền khác và tab Nhập giữ nguyên đường dẫn trước đó.
+Từ 2.3.0, LDPlayer trực tiếp dùng gói com.garena.game.kgvn64x. Các quyền khác và tab Nhập giữ nguyên đường dẫn trước đó.
 
-Từ 2.2.9, riêng map của LDPlayer trực tiếp dùng com.garena.game.kgvn64x/files/Extra/2022.V3/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle. Các quyền khác, Skin và Fix Resources giữ nguyên.
+Từ 2.3.0, riêng map của LDPlayer trực tiếp dùng com.garena.game.kgvn64x/files/Extra/2022.V3/assetbundle/modules/autochess/scene_artist_autochess_01.assetbundle. Các quyền khác, Skin và Fix Resources giữ nguyên.
 
-Bản 2.2.9 khóa màn hình dọc. Khi gỡ map qua LDPlayer trực tiếp, app khôi phục bundle gốc thay vì xóa file. Các quyền khác giữ cách gỡ trước đó.
+Bản 2.3.0 khóa màn hình dọc. Khi gỡ map qua LDPlayer trực tiếp, app khôi phục bundle gốc thay vì xóa file. Các quyền khác giữ cách gỡ trước đó.
+
+Bản 2.3.0 giới hạn khung dọc 9:16 trên Android 9/LDPlayer, tránh giao diện kéo quá dài.

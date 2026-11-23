@@ -1,0 +1,5 @@
+SenceLab 2.3.0 (63), nền 2.2.9 đã phát hành.
+Giới hạn khung dọc tối đa 9:16 trên Android 9/LDPlayer bằng maxAspectRatio=1.7777778 và resizeableActivity=false.
+Giữ các sửa đổi map, quyền, khôi phục map gốc và Lịch sử của 2.2.9.
+Build hoàn tất; APK xác minh chữ ký khớp 2.2.5, zipalign 16KB, GUI khớp nguồn, giữ constructor Shizuku. Chưa thử trên thiết bị/chưa publish.
+Đã cài cập nhật và mở trên LDPlayer: 900x1600, portrait, kiểm tra Trang chủ/Cài đặt chung bằng ảnh chụp. Không thử thao tác file game trong lượt này.
