@@ -27,6 +27,10 @@ class MapFileService(private val gameRoot: File = File(GAME_FILES)) : IMapFile.S
     @Synchronized override fun replace(replacement: ParcelFileDescriptor) = writeResource(MAP_RELATIVE, replacement)
     @Synchronized override fun writeResource(relative: String, replacement: ParcelFileDescriptor) {
         val target = resource(relative)
+        // Binder duplicates share file offsets. Skin transfers must start at byte zero.
+        if (relative == SKIN_RELATIVE) {
+            android.system.Os.lseek(replacement.fileDescriptor, 0, android.system.OsConstants.SEEK_SET)
+        }
         ParcelFileDescriptor.AutoCloseInputStream(replacement).use { input ->
             check(target.parentFile!!.isDirectory || target.parentFile!!.mkdirs()) { "Không tạo được thư mục đích trong Resources." }
             target.outputStream().use { output -> input.copyTo(output); output.fd.sync() }

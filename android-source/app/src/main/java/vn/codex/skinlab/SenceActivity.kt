@@ -82,7 +82,7 @@ class SenceActivity : ComponentActivity() {
     }
     private val serviceArgs by lazy {
         Shizuku.UserServiceArgs(ComponentName(packageName, MapFileService::class.java.name))
-            .tag("map-file").processNameSuffix("map_file").version(224).daemon(false)
+            .tag("map-file").processNameSuffix("map_file").version(BuildConfig.VERSION_CODE).daemon(false)
     }
     private val mapConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
@@ -804,7 +804,11 @@ class SenceActivity : ComponentActivity() {
                 operationPhase("Đang ghi tệp skin…")
                 if (store != null) file.inputStream().use { store.write(SKIN_RELATIVE, it) }
                 else ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { service!!.writeResource(SKIN_RELATIVE, it) }
-                check(fileHash(file) == current().use(::digest).toHex()) { "Tệp skin sau khi ghi không khớp." }
+                val expected = fileHash(file)
+                val actual = current().use(::digest).toHex()
+                check(expected == actual) {
+                    "Tệp skin sau khi ghi không khớp (${if (service != null) "Shizuku" else "Bộ nhớ"}; nguồn ${file.length()} byte; mã ${expected.take(12)}/${actual.take(12)}). Hãy đóng trò chơi rồi thử lại."
+                }
             }
             val hadOriginal = exists()
             require(hadOriginal) { "Không thấy tệp skin gốc trong tài nguyên. Hãy khôi phục bằng Fix Resources trước khi áp dụng skin." }

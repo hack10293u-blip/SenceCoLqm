@@ -27,6 +27,7 @@ import java.net.NetworkInterface
 import java.net.NoRouteToHostException
 import java.net.SocketException
 import java.security.GeneralSecurityException
+import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -299,8 +300,60 @@ internal class LocalAdbWifi(
         work.execute { runCatching { manager.disconnect() } }
     }
 
+    /**
+     * Resource archives can contain thousands of files.  Sending each extracted file over
+     * wireless ADB is slow enough for the connection to time out (and leaves a partial
+     * Resources directory behind).  Transfer one archive, then let the device's shell
+     * validate and unpack it locally, just as the Shizuku service does.
+     */
     @Synchronized fun fixData(file: File) {
-        file.inputStream().use { ResourceInstaller.install(resourceStore(), it, true, workDirectory = context.cacheDir) }
+        check(isConnected()) { "Hãy kết nối lại ADB WiFi." }
+        val token = UUID.randomUUID().toString().replace("-", "")
+        val archive = "$GAME_FILES/.sencelab-resources-$token.zip"
+        val stage = "$GAME_FILES/.sencelab-resources-$token"
+        fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"
+        val qArchive = quote(archive)
+        val qStage = quote(stage)
+        try {
+            // A single SYNC transfer is resilient; never start changing Resources before it
+            // has completed and the remote ZIP has passed its integrity test.
+            file.inputStream().use { wire.send(archive, it) }
+            val script = """
+                set -e
+                archive=$qArchive
+                stage=$qStage
+                cleanup() { rm -rf "\$stage" "\$archive"; }
+                trap cleanup EXIT
+                rm -rf "\$stage"
+                mkdir -p "\$stage"
+                unzip -t "\$archive" >/dev/null
+                unzip -q "\$archive" -d "\$stage"
+                if [ -d "\$stage/Resources/1.64.1" ]; then
+                    payload="\$stage/Resources"
+                elif [ -d "\$stage/1.64.1" ]; then
+                    payload="\$stage"
+                else
+                    echo 'ZIP không chứa Resources/1.64.1'
+                    exit 31
+                fi
+                parent=${'$'}(dirname "\$archive")
+                backup_index=1
+                while [ -e "${'$'}parent/Resources${'$'}backup_index" ]; do backup_index=${'$'}((backup_index + 1)); done
+                backup="${'$'}parent/Resources${'$'}backup_index"
+                if [ -e "${'$'}parent/Resources" ]; then mv "${'$'}parent/Resources" "${'$'}backup"; fi
+                if ! mv "${'$'}payload" "${'$'}parent/Resources"; then
+                    [ -e "${'$'}backup" ] && mv "${'$'}backup" "${'$'}parent/Resources"
+                    exit 32
+                fi
+                [ -d "${'$'}parent/Resources/1.64.1" ]
+            """.trimIndent()
+            val result = wire.command(script)
+            check(result.exitCode == 0) { "ADB chưa giải nén xong Resources: ${result.output.take(300)}" }
+        } finally {
+            // The remote trap handles the normal path; this also cleans up if the transfer
+            // itself was interrupted before the shell command could be started.
+            runCatching { wire.command("rm -rf $qArchive $qStage") }
+        }
     }
     @Synchronized fun canWrite(): Boolean = isConnected() && runCatching { probeResourceWrite(resourceStore()) }.getOrDefault(false)
     fun mapExists(): Boolean = resourceStore().exists(MAP_RELATIVE)

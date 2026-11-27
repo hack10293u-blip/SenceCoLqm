@@ -1,0 +1,7 @@
+SenceLab 2.3.2 (65), nền 2.3.1.
+
+- Fix Resources qua ADB WiFi gửi một Resources.zip, kiểm tra rồi giải nén ngay trên thiết bị; không còn ghi từng tệp đã giải nén qua ADB.
+- Chỉ đổi Resources cũ thành Resources1, Resources2… sau khi gói hợp lệ; khi đổi thất bại sẽ khôi phục thư mục cũ.
+- Shizuku tạo lại user-service theo versionCode hiện tại khi app được nâng cấp; luồng ghi skin đặt lại offset tệp Binder trước khi ghi và báo lỗi xác minh rõ hơn.
+
+APK đã kiểm tra package/version, chữ ký cập nhật cũ, v2/v3 signing và zipalign 16KB. Chưa thử Fix Resources ADB WiFi trên điện thoại thật trong bản này.
